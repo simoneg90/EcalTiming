@@ -85,7 +85,7 @@ EcalTimeEleTreeMaker::EcalTimeEleTreeMaker (const edm::ParameterSet& iConfig) :
   eleIdCuts_                               (iConfig.getParameter< std::vector<int> > ("eleIdCuts")),
   elePtCut_                                (iConfig.getParameter<double> ("elePtCut")),
   scHighEtaEEPtCut_                        (iConfig.getParameter<double> ("scHighEtaEEPtCut")),
-  fileName_                                (iConfig.getParameter<std::string> ("fileName")),
+  fileName_                                (iConfig.getParameter<std::string> ("OutfileName")),
   workingPoint_                            (iConfig.getParameter<std::string> ("eleWorkingPoint")),
   naiveId_ (0)              
 {
