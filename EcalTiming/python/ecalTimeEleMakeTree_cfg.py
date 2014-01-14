@@ -12,15 +12,18 @@ process.out = cms.OutputModule(
 
 
 # gfworks: to get clustering 
-process.load('Configuration/StandardSequences/GeometryExtended_cff')
 
 # Geometry
+process.load("Configuration.Geometry.GeometryIdeal_cff")
+
+process.load('Configuration/StandardSequences/GeometryExtended_cff')
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 process.load("Geometry.MuonNumbering.muonNumberingInitialization_cfi") # gfwork: need this?
+process.CaloTowerConstituentsMapBuilder = cms.ESProducer("CaloTowerConstituentsMapBuilder")
 
 
 # pat needed to work out electron id/iso
@@ -40,8 +43,10 @@ from PhysicsTools.PatAlgos.selectionLayer1.jetCountFilter_cfi import *
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_noesprefer_cff")
 
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag( process.GlobalTag, 'GR_R_53_V18::All' )
 # tag below tested in CMSSW_4_3_0_pre3
-process.GlobalTag.globaltag = 'GR_R_42_V14::All'
+#process.GlobalTag.globaltag = 'GR_R_42_V14::All'
 
 # this is for jan16 reprocessing - tested in CMSSW_4_3_0_pre3
 #process.GlobalTag.globaltag = 'FT_R_42_V24::All'
@@ -116,7 +121,7 @@ process.ecalTimeEleTree.runNum = 999999
 
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 process.p = cms.Path(
     process.patMyDefaultSequence *
@@ -137,7 +142,9 @@ process.source = cms.Source(
     #'/store/relval/CMSSW_4_2_0_pre8/EG/RECO/GR_R_42_V7_RelVal_wzEG2010A-v1/0043/069662C9-9A56-E011-9741-0018F3D096D2.root'
     #'/store/data/Run2010A/EG/RECO/v4/000/144/114/EEC21BFA-25B4-DF11-840A-001617DBD5AC.root'
 
-    'file:/data/franzoni/data/Run2011A_DoubleElectron_AOD_PromptReco-v4_000_166_946_CE9FBCFF-4B98-E011-A6C3-003048F11C58.root'
+   # 'file:/data/franzoni/data/Run2011A_DoubleElectron_AOD_PromptReco-v4_000_166_946_CE9FBCFF-4B98-E011-A6C3-003048F11C58.root'
+        'file:/hdfs/cms/phedex/store/data/Run2012C/SinglePhoton/RECO/EXODisplacedPhoton-PromptSkim-v3/000/198/941/00000/0EA7C91A-B8CF-E111-9766-002481E150EA.root'
+
     )
                  )
     )
