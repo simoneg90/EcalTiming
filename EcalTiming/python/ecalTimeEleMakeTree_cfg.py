@@ -112,7 +112,7 @@ process.patMyDefaultSequence = cms.Sequence(process.makePatCandidates)
 
 # this is the ntuple producer
 process.load("CalibCalorimetry.EcalTiming.ecalTimeEleTree_cfi")
-process.ecalTimeEleTree.fileName = 'EcalTimeTree'
+process.ecalTimeEleTree.OutfileName = 'EcalTimeTree'
 process.ecalTimeEleTree.muonCollection = cms.InputTag("muons")
 process.ecalTimeEleTree.runNum = 999999
 #process.ecalTimeTree.endcapSuperClusterCollection = cms.InputTag("correctedMulti5x5SuperClustersWithPreshower","")
@@ -143,8 +143,21 @@ process.source = cms.Source(
     #'/store/data/Run2010A/EG/RECO/v4/000/144/114/EEC21BFA-25B4-DF11-840A-001617DBD5AC.root'
 
    # 'file:/data/franzoni/data/Run2011A_DoubleElectron_AOD_PromptReco-v4_000_166_946_CE9FBCFF-4B98-E011-A6C3-003048F11C58.root'
-        'file:/hdfs/cms/phedex/store/data/Run2012C/SinglePhoton/RECO/EXODisplacedPhoton-PromptSkim-v3/000/198/941/00000/0EA7C91A-B8CF-E111-9766-002481E150EA.root'
-
+   #     'file:/hdfs/cms/phedex/store/data/Run2012C/SinglePhoton/RECO/EXODisplacedPhoton-PromptSkim-v3/000/198/941/00000/0EA7C91A-B8CF-E111-9766-002481E150EA.root'  'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/0000FDB8-836E-E211-B773-002618943854.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00114C6A-7C6E-E211-B59A-002618943946.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/001E9308-676E-E211-B7F0-00261894385D.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00333CC0-7D6E-E211-9FAD-0026189438F4.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00393040-776E-E211-904B-002618943809.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/0041AD3C-6E6E-E211-94FE-003048678FEA.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/0049FA8E-676E-E211-AA54-0026189438C4.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/006DFDA5-7E6E-E211-A274-00304867BFBC.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00884BA4-496E-E211-875C-0026189437FE.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00A473F6-676E-E211-95BE-002618FDA208.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00C86187-656E-E211-A50D-002354EF3BDF.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00EC4804-746E-E211-817E-003048FFD720.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/00FC51EF-836E-E211-ACF0-003048FFCB8C.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012C/SinglePhoton/RECO/22Jan2013-v1/20000/021A22F0-7E6E-E211-90F8-003048FFD736.root',
+'dcache:/pnfs/cms/WAX/11/store/data/Run2012B/SinglePhoton/RECO/22Jan2013-v1/20000/72F87251-F871-E211-83C3-002618943838.root'
     )
                  )
     )
