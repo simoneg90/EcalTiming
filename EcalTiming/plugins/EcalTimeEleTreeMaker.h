@@ -16,6 +16,8 @@ Implementation:
 //
 // Authors:                              Giovanni Franzoni (UMN)
 //         Created:  Mo Apr 16  5:46:22 CEST 2011
+//
+//         Maintained by  Tambe E. Norbert (UMN)  2012-2014 
 // $Id: EcalTimeEleTreeMaker.h,v 1.3 2011/09/10 11:03:44 franzoni Exp $
 //
 //
