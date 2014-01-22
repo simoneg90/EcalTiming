@@ -16,6 +16,8 @@ Implementation:
 //         Created:  Mo Apr 18 5:46:22 CEST 2008
 // $Id: EcalTimeEleTreeMaker.cc,v 1.11 2011/11/22 17:07:35 franzoni Exp $
 //
+// Maintained by Tambe E. Norbert (UMN) 2012-2014
+//
 //
 
 
@@ -199,7 +201,7 @@ void EcalTimeEleTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSe
   myTreeVariables_.timeStampLow  = ( 0xFFFFFFFF & iEvent.time ().value () ) ;
   myTreeVariables_.timeStampHigh = ( iEvent.time ().value () >> 32 ) ;
 
-
+  /**Get Collection of GSFElectrons if using **/
   edm::Handle<reco::GsfElectronCollection> gsfElectrons;
   iEvent.getByLabel("gsfElectrons", gsfElectrons);
   if (!gsfElectrons.isValid()) {
