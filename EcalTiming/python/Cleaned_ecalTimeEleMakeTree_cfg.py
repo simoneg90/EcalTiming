@@ -19,7 +19,6 @@ process.out = cms.OutputModule(
 
 # Geometry
 process.load("Configuration.Geometry.GeometryIdeal_cff")
-
 process.load('Configuration/StandardSequences/GeometryExtended_cff')
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
