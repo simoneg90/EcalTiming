@@ -25,7 +25,9 @@
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
-#include "DQM/EcalCommon/interface/Numbers.h"
+//#include "DQM/EcalCommon/interface/Numbers.h"
+#include "CalibCalorimetry/EcalTiming/interface/Numbers.h"
+
 
 #include <fstream>
 

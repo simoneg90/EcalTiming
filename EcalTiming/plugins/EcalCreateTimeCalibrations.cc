@@ -14,6 +14,8 @@ Implementation:
 // Authors:                              Seth Cooper (Minnesota)
 //         Created:  Tu Apr 26  10:46:22 CEST 2011
 // $Id: EcalCreateTimeCalibrations.cc,v 1.19 2012/06/14 18:58:17 jared Exp $
+// Second Author: Tambe E. Norbert
+//                Univ Of Minnesota
 //
 //
 
@@ -37,7 +39,9 @@ Implementation:
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
-#include "DQM/EcalCommon/interface/Numbers.h"
+//#include "DQM/EcalCommon/interface/Numbers.h"
+#include "CalibCalorimetry/EcalTiming/interface/Numbers.h"
+
 
 #include <fstream>
 

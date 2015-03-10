@@ -14,6 +14,8 @@
 // Original Author:  Seth Cooper,27 1-024,+41227672342,
 //         Created:  Mon Sep 26 17:38:06 CEST 2011
 // $Id: EcalAdjustFETimingDQM.cc,v 1.12 2012/09/27 15:37:43 scooper Exp $
+// Second Author: Tambe E. Norbert
+//                Univ Of Minnesota
 //
 //
 // ***************************************************************************************
@@ -22,6 +24,7 @@
 // 
 
 #include "DQM/EcalCommon/interface/Numbers.h"
+#include "CalibCalorimetry/EcalTiming/interface/Numbers.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/EcalDetId/interface/EcalTrigTowerDetId.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
