@@ -28,7 +28,8 @@
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 
-#include "DQM/EcalCommon/interface/Numbers.h"
+#include "CalibCalorimetry/EcalTiming/interface/Numbers.h"
+//#include "DQM/EcalCommon/interface/Numbers.h"
 
 //-------------------------------------------------------------------------
 
