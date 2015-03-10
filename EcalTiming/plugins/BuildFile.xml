@@ -20,6 +20,7 @@
 <use   name="root"/>
 <use   name="xerces-c"/>
 <lib   name="Minuit"/>
-<library   file="*.cc" name="CalibCalorimetryEcalTimingPlugins">
-  <flags   EDM_PLUGIN="1"/>
+<library file="*.cc" name="CalibCalorimetryEcalTimingPlugins">
+<flags EDM_PLUGIN="1"/>
 </library>
+
