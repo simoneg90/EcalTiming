@@ -3,6 +3,7 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("TIMECALIBANALYSIS")
 
 # gfworks: to get clustering 
+process.load("Configuration.Geometry.GeometryIdeal_cff")
 process.load('Configuration/StandardSequences/GeometryExtended_cff')
 
 # Geometry
@@ -12,8 +13,11 @@ process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 process.load("Geometry.MuonNumbering.muonNumberingInitialization_cfi") # gfwork: need this?
+process.CaloTowerConstituentsMapBuilder = cms.ESProducer("CaloTowerConstituentsMapBuilder")
 
 
+process.load("Configuration.StandardSequences.MagneticField_38T_cff")
+process.load("Geometry.CSCGeometryBuilder.cscGeometry_cfi")
 # Global Tag
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_noesprefer_cff")
@@ -25,7 +29,19 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = 'GR_P_V37::All'
 #process.GlobalTag.globaltag = 'GR_P_V40::All'
 #process.GlobalTag.globaltag = 'FT_R_53_V6::All'
-process.GlobalTag.globaltag = 'GR_P_V40::All'
+process.GlobalTag.globaltag = 'GR_P_V42::All'
+
+
+## solves the Problems of: No "EcalLinearCorrectionsRcd" record found in the dependent record "EcalLaserDbRecord"
+#process.GlobalTag.globaltag = GlobalTag
+process.GlobalTag.toGet = cms.VPSet(
+cms.PSet(record = cms.string('EcalLinearCorrectionsRcd'),
+tag = cms.string('EcalLinearCorrections_mc'),
+connect = cms.untracked.string('frontier://FrontierPrep/CMS_COND_ECAL')
+)
+)
+
+
 
 # Trigger
 process.load("L1TriggerConfig.L1ScalesProducers.L1MuTriggerScalesConfig_cff")
@@ -55,7 +71,7 @@ process.ecalTimeTree.runNum = 999999
 
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1000))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 process.p = cms.Path(
     # process.dumpEvContent  *
@@ -89,7 +105,10 @@ process.source = cms.Source(
     #'/store/data/Run2010A/EG/RECO/v4/000/144/114/EEC21BFA-25B4-DF11-840A-001617DBD5AC.root'
     #'file:AOD.root'
     #'file:/data/franzoni/data/Run2011A-MinimumBias-RECO-PromptReco-v1-run160406-0C132C90-434F-E011-8FF6-003048D2BF1C.root'
-    'file:/data/franzoni/data/Run2011A_DoubleElectron_AOD_PromptReco-v4_000_166_946_CE9FBCFF-4B98-E011-A6C3-003048F11C58.root'
-    )
+    #'file:/data/franzoni/data/Run2011A_DoubleElectron_AOD_PromptReco-v4_000_166_946_CE9FBCFF-4B98-E011-A6C3-003048F11C58.root'
+    #'root://xrootd.unl.edu//store/data/Run2012C/ElectronHad/AOD/PromptReco-v2/000/198/939/D89FF055-C1CE-E111-82AE-001D09F244DE.root'
+     'file:50988619-41DE-E211-9F98-003048FFD770.root'
+
+      )
                  )
     )

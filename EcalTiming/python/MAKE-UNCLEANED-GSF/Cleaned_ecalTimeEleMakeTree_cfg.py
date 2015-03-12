@@ -2,12 +2,16 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("TIMECALIBANALYSISELE")
 
+filelist = cms.untracked.vstring()
+filelist.extend([
+'file:/hdfs/cms/phedex/store/data/Run2012A/DoubleElectron/AOD/22Jan2013-v1/20000/548BD0EF-5F67-E211-AB31-00261894393F.root'
+])
 
 # Output - dummy
 process.out = cms.OutputModule(
     "PoolOutputModule",
     outputCommands = cms.untracked.vstring(),
-    fileName = cms.untracked.string('file:pippo.root'),
+    fileName = cms.untracked.string('file:EcalTiming_RUn2012C.root'),
     )
 
 
@@ -15,7 +19,6 @@ process.out = cms.OutputModule(
 
 # Geometry
 process.load("Configuration.Geometry.GeometryIdeal_cff")
-
 process.load('Configuration/StandardSequences/GeometryExtended_cff')
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
@@ -135,8 +138,8 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 250
 # dbs search --query "find file where dataset=/ExpressPhysics/BeamCommissioning09-Express-v2/FEVT and run=124020" | grep store | awk '{printf "\"%s\",\n", $1}'
 process.source = cms.Source("PoolSource",
     skipEvents = cms.untracked.uint32(0),
-
-    fileNames = cms.untracked.vstring('file:input.root')
+    fileNames = filelist,
+    #fileNames = cms.untracked.vstring('file:input.root')
     #'/store/data/Commissioning10/MinimumBias/RAW-RECO/v9/000/135/494/A4C5C9FA-C462-DF11-BC35-003048D45F7A.root',
     #'/store/relval/CMSSW_4_2_0_pre8/EG/RECO/GR_R_42_V7_RelVal_wzEG2010A-v1/0043/069662C9-9A56-E011-9741-0018F3D096D2.root'
     #'/store/data/Run2010A/EG/RECO/v4/000/144/114/EEC21BFA-25B4-DF11-840A-001617DBD5AC.root'
@@ -146,7 +149,5 @@ process.source = cms.Source("PoolSource",
 
  #   )
     
-    )
-
-
+ )
 

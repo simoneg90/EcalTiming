@@ -24,7 +24,8 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = 'GR_R_35X_V8A::All'
 #process.GlobalTag.globaltag = 'GR_R_42_V2::All'
 #process.GlobalTag.globaltag = 'GR_P_V22::All'
-process.GlobalTag.globaltag = 'GR_P_V27::All'
+#process.GlobalTag.globaltag = 'GR_P_V27::All'
+process.GlobalTag.globaltag = 'GR_P_V42::All'
 
 # Trigger
 process.load("L1TriggerConfig.L1ScalesProducers.L1MuTriggerScalesConfig_cff")
@@ -51,8 +52,8 @@ process.load("RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff")
 #process.ecalRecHit.EEuncalibRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEE")
 #process.ecalRecHit.EBuncalibRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEB")
 
-process.ecalGlobalUncalibRecHit.doEBtimeCorrection = cms.bool(True)
-process.ecalGlobalUncalibRecHit.doEEtimeCorrection = cms.bool(True)
+process.ecalGlobalUncalibRecHit.doEBtimeCorrection = cms.bool(False) ## True if running on CMSSW_4XY
+process.ecalGlobalUncalibRecHit.doEEtimeCorrection = cms.bool(False) ## True if running on CMSSW_4XY
 
 # general basic- and super- clustering sequences
 import RecoEcal.EgammaClusterProducers.multi5x5ClusteringSequence_cff
@@ -145,7 +146,7 @@ process.load("RecoVertex.Configuration.RecoVertex_cff")
 
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(2))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 import RecoEcal.Configuration.RecoEcal_cff
 
@@ -190,7 +191,9 @@ process.source = cms.Source(
     
     fileNames = (cms.untracked.vstring(
     'file:/data/franzoni/data/423_Run2011A-SingleMu-RAW-RECO-WMu-May10ReReco-v1-0000-02367CF3-DB7B-E011-8E9D-0019BB32F1EE.root'
-    )                ),
+    #'file:MyCrab/50988619-41DE-E211-9F98-003048FFD770.root'
+
+     )                ),
     # drop native rechits and clusters, to be sure only those locally made will be picked up
     inputCommands = cms.untracked.vstring('keep *'
                                           ,'drop EcalRecHitsSorted_*_*_RECO' # drop hfRecoEcalCandidate as remade in this process
