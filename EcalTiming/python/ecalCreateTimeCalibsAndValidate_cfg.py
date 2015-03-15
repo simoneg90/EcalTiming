@@ -6,7 +6,7 @@ process = cms.Process("EcalCreateTimeCalibrations")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load("Configuration.StandardSequences.Geometry_cff")
 
-process.GlobalTag.globaltag = 'GR_R_44_V5::All'
+process.GlobalTag.globaltag = 'GR_P_V42::All'
 
 process.MessageLogger = cms.Service("MessageLogger",
     cout = cms.untracked.PSet(threshold = cms.untracked.string('INFO')),
