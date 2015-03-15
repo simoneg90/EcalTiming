@@ -5,7 +5,8 @@ process = cms.Process("EcalCreateTimeCalibrations")
 # Global Tag -- for original timing calibrations
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load("Configuration.StandardSequences.Geometry_cff")
-process.GlobalTag.globaltag = 'GR_R_44_V5::All'
+#process.GlobalTag.globaltag = 'GR_R_44_V5::All'
+process.GlobalTag.globaltag = 'GR_P_V42::All'
 
 
 process.MessageLogger = cms.Service("MessageLogger",
@@ -44,7 +45,9 @@ process.createTimeCalibs = cms.EDAnalyzer("EcalCreateTimeCalibrations",
   MinHitTimeEE = cms.double(-7),
   EventsUsedFractionNum = cms.double(1),
   EventsUsedFractionDen = cms.double(1),
-  InputFileNames = cms.vstring('file:/data/jared/data/EcalTiming/DoubleElectron_Run2011A-ZElectron-PromptSkim-v4_RAW-RECO/rh-DoubleElectron_Run2011A-ZElectron-PromptSkim-v4_RAW-RECO-jul15.HADDED.root')
+  InputFileNames = cms.vstring(
+   'file:EcalTimeTree_999999.root'
+   )
 )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
 process.source = cms.Source("EmptySource",
