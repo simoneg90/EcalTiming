@@ -47,8 +47,8 @@
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerObjectMapRecord.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerObjectMap.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GlobalTrigger.h"
-
+//#include "L1Trigger/GlobalTrigger/interface/L1GlobalTrigger.h"
+#include "L1Trigger/GlobalTriggerAnalyzer/interface/L1GtAnalyzer.h"
 
 #include<fstream>
 #include <iomanip>

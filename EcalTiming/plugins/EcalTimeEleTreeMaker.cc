@@ -91,9 +91,14 @@ EcalTimeEleTreeMaker::EcalTimeEleTreeMaker (const edm::ParameterSet& iConfig) :
   workingPoint_                            (iConfig.getParameter<std::string> ("eleWorkingPoint")),
   naiveId_ (0)              
 {
+
+     // rechit Tokens for EcalClusterLazyTools
+    ebEcalRecHitToken_ =  consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag> ("barrelEcalRecHitCollection")),
+    eeEcalRecHitToken_ =  consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag> ("endcapEcalRecHitCollection")),
+
   // TrackAssociator parameters // gfwork: can we remove this? 
-  edm::ParameterSet trkParameters = iConfig.getParameter<edm::ParameterSet> ("TrackAssociatorParameters") ;
-  trackParameters_.loadParameters ( trkParameters ) ;
+  //edm::ParameterSet trkParameters = iConfig.getParameter<edm::ParameterSet> ("TrackAssociatorParameters") ;
+  //trackParameters_.loadParameters ( trkParameters ) ;
   //trackAssociator_.useDefaultPropagator () ;
 
   // Create File
@@ -178,7 +183,8 @@ void EcalTimeEleTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSe
 
 
   // ClusterShapes
-  EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, barrelEcalRecHitCollection_, endcapEcalRecHitCollection_);
+  //EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, barrelEcalRecHitCollection_, endcapEcalRecHitCollection_);
+  EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, ebEcalRecHitToken_, eeEcalRecHitToken_);
 
 
   // Xtal - TkLength map
@@ -431,7 +437,8 @@ void EcalTimeEleTreeMaker::dumpBarrelClusterInfo (const edm::Event& iEvent,
 	      // thisamp is the EB amplitude of the current rechit
 	      double thisamp  = myhit.energy () ;
 	      double thisChi2 = myhit.chi2 ();
-	      double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
+	      //double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
+	      double thisOutOfTimeChi2 = myhit.chi2 ();
 	      
 	      EcalIntercalibConstantMap::const_iterator icalit = icalMap.find(detitr->first);
 	      
@@ -679,7 +686,8 @@ void EcalTimeEleTreeMaker::dumpEndcapClusterInfo (const edm::Event& iEvent,
 	     double thisamp  = myhit.energy () ;
 	     double thistime = myhit.time ();
 	     double thisChi2 = myhit.chi2 ();
-	     double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
+	     //double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
+	     double thisOutOfTimeChi2 = myhit.chi2 ();  // For some Reason No More outOfTimeChi2() in CMSSW_7_3_X
 
     
              EcalIntercalibConstantMap::const_iterator icalit = icalMap.find(detitr->first);

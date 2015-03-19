@@ -107,12 +107,17 @@ class EcalTimeTreeMaker : public edm::EDAnalyzer
       explicit EcalTimeTreeMaker (const edm::ParameterSet&) ;
       ~EcalTimeTreeMaker () ;
 
+         // Tokens for ClusterLazyTools
+      edm::EDGetTokenT<EcalRecHitCollection> ebEcalRecHitToken_;
+      edm::EDGetTokenT<EcalRecHitCollection> eeEcalRecHitToken_;
    protected:
 
       virtual void beginJob () {} ;
       virtual void analyze (const edm::Event&, const edm::EventSetup&) ;
       virtual void endJob () ;
       virtual void beginRun(edm::Run const &, edm::EventSetup const &) ;
+
+
 
   private:
 
@@ -157,7 +162,8 @@ class EcalTimeTreeMaker : public edm::EDAnalyzer
     // ----------member data ---------------------------
 
    protected:
-
+ 
+      
       edm::InputTag barrelEcalRecHitCollection_ ;
       edm::InputTag endcapEcalRecHitCollection_ ;
       edm::InputTag barrelBasicClusterCollection_ ;
