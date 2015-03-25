@@ -80,6 +80,9 @@ Implementation:
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
+
+#include "RecoTracker/Record/interface/TrackerRecoGeometryRecord.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 // ***
 
 //for track length

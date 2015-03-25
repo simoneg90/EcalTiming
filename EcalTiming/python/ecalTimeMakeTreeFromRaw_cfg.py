@@ -4,7 +4,6 @@ process = cms.Process("TIMECALIBANALYSIS")
 
 # gfworks: to get clustering 
 process.load('Configuration/StandardSequences/GeometryExtended_cff')
-
 # Geometry goodies
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
@@ -295,7 +294,6 @@ process.load("RecoVertex.Configuration.RecoVertex_cff")
 
 
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
-
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 import RecoEcal.Configuration.RecoEcal_cff
@@ -405,7 +403,6 @@ process.options = cms.untracked.PSet(
 process.source = cms.Source(
     "PoolSource",
     skipEvents = cms.untracked.uint32(0),
-    
     fileNames = cms.untracked.vstring(
     #'file:/data/franzoni/data/423_Run2011A-SingleMu-RAW-RECO-WMu-May10ReReco-v1-0000-02367CF3-DB7B-E011-8E9D-0019BB32F1EE.root'
     #'file:MyCrab/50988619-41DE-E211-9F98-003048FFD770.root'
