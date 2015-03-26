@@ -2,8 +2,18 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("TIMECALIBANALYSIS")
 
+
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.EventContent.EventContent_cff')
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 ## Get Cosmic Reconstruction
 process.load('Configuration/StandardSequences/ReconstructionCosmics_cff')
+process.load('Configuration.StandardSequences.EndOfProcess_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+
 
 ## Raw to Digi
 process.load('Configuration/StandardSequences/RawToDigi_Data_cff')
@@ -20,34 +30,11 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
 process.load("FWCore.Modules.preScaler_cfi")
 process.preScaler.prescaleFactor = 1
 ## GlobalTag Conditions Related
-process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.GlobalTag.globaltag = 'GR_R_72_V2::All'
-
-## Bfield
-process.load("Configuration.StandardSequences.MagneticField_cff")
-#process.load("Configuration.StandardSequences.MagneticField_38T_cff")
-#from RecoTracker.Configuration.RecoTracker_cff import *
-#from RecoParticleFlow.PFClusterProducer.particleFlowCluster_cff import *
-#from TrackingTools.Configuration.TrackingTools_cff import *
-#from RecoTracker.MeasurementDet.MeasurementTrackerEventProducer_cfi import *
-##Geormetry
-process.load('Configuration/StandardSequences/GeometryExtended_cff')
-process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
-process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
-process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
-
-#process.load("Configuration.StandardSequences.GeometryTrackerOnly_cff")
-process.load("Geometry.CMSCommonData.cmsIdealGeometryXML_cfi") 
-process.load("Geometry.TrackerNumberingBuilder.trackerNumberingGeometry_cfi")
-process.load("Geometry.TrackerGeometryBuilder.trackerGeometry_cfi")
-#process.load("Alignment.CommonAlignmentProducer.FakeAlignmentSource_cfi")
-
-#from Configuration.Geometry.GeometryAll_cff import *
-
- 
-process.load("Geometry.CaloEventSetup.EcalTrigTowerConstituents_cfi")
-process.load("Geometry.EcalMapping.EcalMapping_cfi")
-process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
+#process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+#process.GlobalTag.globaltag = 'GR_R_72_V2::All'
+## Get GlobalTag from Data
+from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
 
 ## Process Digi To Raw Stepts
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
@@ -112,7 +99,7 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 ### Process Full Path
-process.p = cms.Path(process.spashesHltFilter    
+process.p = cms.Path( process.spashesHltFilter    
                      + process.preScaler 
                      + process.digiStep 
                      #+ process.muonSequence 
