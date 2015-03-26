@@ -62,6 +62,7 @@ using namespace std ;
 #define FILL_SHAPE_VARS 0
 
 EcalTimeTreeMaker::EcalTimeTreeMaker (const edm::ParameterSet& iConfig) :
+  _isSplash (iConfig.getParameter<bool>("isSplash")),
   barrelEcalRecHitCollection_              (iConfig.getParameter<edm::InputTag> ("barrelEcalRecHitCollection")),
   endcapEcalRecHitCollection_              (iConfig.getParameter<edm::InputTag> ("endcapEcalRecHitCollection")),
   barrelBasicClusterCollection_            (iConfig.getParameter<edm::InputTag> ("barrelBasicClusterCollection")),
@@ -76,6 +77,7 @@ EcalTimeTreeMaker::EcalTimeTreeMaker (const edm::ParameterSet& iConfig) :
   minEtEB_              (iConfig.getParameter<double> ("minEtEB")),
   minEtEE_              (iConfig.getParameter<double> ("minEtEE")),
   fileName_             (iConfig.getUntrackedParameter<std::string> ("fileName", std::string ("EcalTimeTreeMaker"))),
+
   naiveId_ (0)              
 
 
@@ -110,8 +112,7 @@ EcalTimeTreeMaker::~EcalTimeTreeMaker ()
 // -----------------------------------------------------------------------------------------
 
 
-void EcalTimeTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSetup& iSetup)
-{
+void EcalTimeTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSetup& iSetup){
   ++naiveId_ ;
     
 
@@ -127,33 +128,42 @@ void EcalTimeTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSetup
   // Ecal barrel RecHits 
   edm::Handle<EcalRecHitCollection> pBarrelEcalRecHits ;
   const EcalRecHitCollection* theBarrelEcalRecHits = 0;
-  if( iEvent.getByLabel (barrelEcalRecHitCollection_, pBarrelEcalRecHits) && pBarrelEcalRecHits.isValid ())
-    {
-      theBarrelEcalRecHits = pBarrelEcalRecHits.product () ;   
-    }
-  if (! (pBarrelEcalRecHits.isValid ()) )
-    {
-      LogWarning ("EcalTimeTreeMaker") << barrelEcalRecHitCollection_ 
-				     << " not available" ;
-      return ;
-    }
-  
-  
-  // Ecal endcap RecHits
+  iEvent.getByLabel (barrelEcalRecHitCollection_, pBarrelEcalRecHits);
+  theBarrelEcalRecHits = pBarrelEcalRecHits.product () ;   
+    // Ecal endcap RecHits
   edm::Handle<EcalRecHitCollection> pEndcapEcalRecHits ;
   const EcalRecHitCollection* theEndcapEcalRecHits = 0;
-  if( iEvent.getByLabel (endcapEcalRecHitCollection_, pEndcapEcalRecHits) && pEndcapEcalRecHits.isValid ())
-    {
+  iEvent.getByLabel (endcapEcalRecHitCollection_, pEndcapEcalRecHits);
+   
       theEndcapEcalRecHits = pEndcapEcalRecHits.product () ;   
-    }
+    
+  // ClusterShapes
+  //EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, barrelEcalRecHitCollection_, endcapEcalRecHitCollection_);
+  EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, ebEcalRecHitToken_, eeEcalRecHitToken_);
+
+  // Xtal - TkLength map
+  std::map<int,float> XtalMap ;
+  std::map<int,float> XtalMapCurved ;
+  std::map<int,float> XtalMapCurved_high ;
+  std::map<int,float> XtalMapCurved_low ;
+
+  // GFdoc initialize variables to 0/false
+  initializeBranches(tree_, myTreeVariables_);
   
-  if (! (pEndcapEcalRecHits.isValid ()))
-    {
-      LogWarning ("EcalTimeTreeMaker") << endcapEcalRecHitCollection_ 
-                                     << " not available" ;
-      return ;
-    }
+  myTreeVariables_.bx          = iEvent.bunchCrossing();
+  myTreeVariables_.lumiSection = iEvent.id().luminosityBlock();
+  myTreeVariables_.unixTime    = iEvent.eventAuxiliary().time().unixTime();
+  myTreeVariables_.orbit       = iEvent.orbitNumber();
   
+  myTreeVariables_.runId         = iEvent.id ().run () ;
+  myTreeVariables_.eventId       = iEvent.id ().event () ;
+  myTreeVariables_.eventNaiveId  = naiveId_ ;
+  myTreeVariables_.timeStampLow  = ( 0xFFFFFFFF & iEvent.time ().value () ) ;
+  myTreeVariables_.timeStampHigh = ( iEvent.time ().value () >> 32 ) ;
+
+
+
+  if(_isSplash==false){  
   // GFdo switch to appropriate clusters here (basic instead of super) 
   // Barrel SuperClusters
   edm::Handle<reco::SuperClusterCollection> pBarrelSuperClusters ;
@@ -203,31 +213,8 @@ void EcalTimeTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSetup
                                      << " not available" ;
       return ;
     }
- 
-  // ClusterShapes
-  //EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, barrelEcalRecHitCollection_, endcapEcalRecHitCollection_);
-  EcalClusterLazyTools* lazyTools = new EcalClusterLazyTools(iEvent, iSetup, ebEcalRecHitToken_, eeEcalRecHitToken_);
 
-  // Xtal - TkLength map
-  std::map<int,float> XtalMap ;
-  std::map<int,float> XtalMapCurved ;
-  std::map<int,float> XtalMapCurved_high ;
-  std::map<int,float> XtalMapCurved_low ;
-
-  // GFdoc initialize variables to 0/false
-  initializeBranches(tree_, myTreeVariables_);
   
-  myTreeVariables_.bx          = iEvent.bunchCrossing();
-  myTreeVariables_.lumiSection = iEvent.id().luminosityBlock();
-  myTreeVariables_.unixTime    = iEvent.eventAuxiliary().time().unixTime();
-  myTreeVariables_.orbit       = iEvent.orbitNumber();
-  
-  myTreeVariables_.runId         = iEvent.id ().run () ;
-  myTreeVariables_.eventId       = iEvent.id ().event () ;
-  myTreeVariables_.eventNaiveId  = naiveId_ ;
-  myTreeVariables_.timeStampLow  = ( 0xFFFFFFFF & iEvent.time ().value () ) ;
-  myTreeVariables_.timeStampHigh = ( iEvent.time ().value () >> 32 ) ;
-
   Handle<reco::VertexCollection> recVtxs;
   iEvent.getByLabel(vertexCollection_, recVtxs);
   const reco::VertexCollection * theRecVtxs = recVtxs.product();
@@ -242,7 +229,7 @@ void EcalTimeTreeMaker::analyze (const edm::Event& iEvent, const edm::EventSetup
 			theEndcapBasicClusters, theEndcapSuperClusters, lazyTools, XtalMap, XtalMapCurved, myTreeVariables_) ;
   
   dumpVertexInfo(theRecVtxs, myTreeVariables_);
-
+  }
   tree_ -> Fill();
   delete lazyTools;
 }
@@ -930,3 +917,84 @@ EcalTimeTreeMaker::determineTriggers (const edm::Event& iEvent, const edm::Event
   return l1Triggers;
 }
 // -------------------------------------------------------------------------------------------------------------
+
+bool EcalTimeTreeMaker::FillRecHit(EcalRecHit myhit){
+     // skip if not good
+     if( !( myhit.checkFlag(EcalRecHit::kGood) ||
+	    myhit.checkFlag(EcalRecHit::kOutOfTime) ||
+	    myhit.checkFlag(EcalRecHit::kPoorCalib) 
+	      ) 
+	  )
+	  return false;
+     	   
+	   // thisamp is the EB amplitude of the current rechit
+	   double thisamp  = myhit.energy () ;
+	   double thistime = myhit.time ();
+	   double thisChi2 = myhit.chi2 ();
+	   //double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
+	   double thisOutOfTimeChi2 = myhit.chi2 ();
+
+	   
+	   EcalIntercalibConstantMap::const_iterator icalit = icalMap.find(detitr->first);
+	   EcalIntercalibConstant icalconst = 1;
+	   if( icalit!=icalMap.end() ) {
+	     icalconst = (*icalit);
+	   } else {
+	     edm::LogError("EcalTimeTreeMaker") << "No intercalib const found for xtal "
+						<< (detitr->first).rawId();
+	   }
+	   
+	   // get laser coefficient
+	   float lasercalib = 1.;
+	   lasercalib = laser->getLaserCorrection( detitr->first, iEvent.time());
+	   // std::cout << "GF EB debug: " << lasercalib << std::endl;
+
+	   // discard rechits with A/sigma < 12
+	   if ( thisamp/(icalconst*lasercalib*adcToGeV) < (1.1*12) ) continue;
+
+	   if (thisamp > 0.027) //cut on energy->number of crystals in cluster above 3sigma noise; gf: desirable?
+	     { 
+	       numXtalsinCluster++ ; 
+	     }
+	   if (thisamp > secondMin) 
+	     {
+	       secondMin = thisamp ; 
+	       secondTime = myhit.time () ; 
+	       secDet = (EBDetId) (detitr -> first) ;
+	     }
+	   if (secondMin > ampli) 
+	     {
+	       std::swap (ampli, secondMin) ; 
+	       std::swap (time, secondTime) ; 
+	       std::swap (maxDet, secDet) ;
+	     }
+
+	   
+	   if(myhit.isTimeErrorValid())
+             myTreeVariables_.xtalInBCTimeErr[numberOfClusters][numberOfXtalsInCluster]= myhit.timeError();
+           else
+             myTreeVariables_.xtalInBCTimeErr[numberOfClusters][numberOfXtalsInCluster]= -999999;
+
+	   // xtal variables inside a barrel basic cluster 
+	   myTreeVariables_.xtalInBCEnergy[numberOfClusters][numberOfXtalsInCluster]=       (float) thisamp;
+	   myTreeVariables_.xtalInBCTime[numberOfClusters][numberOfXtalsInCluster]=         (float) thistime; 
+	   myTreeVariables_.xtalInBCHashedIndex[numberOfClusters][numberOfXtalsInCluster]=  EBDetId (detitr -> first).hashedIndex () ; 
+	   myTreeVariables_.xtalInBCIEta[numberOfClusters][numberOfXtalsInCluster]=         EBDetId((detitr -> first)).ieta();
+	   myTreeVariables_.xtalInBCIPhi[numberOfClusters][numberOfXtalsInCluster]=         EBDetId((detitr -> first)).iphi();
+           myTreeVariables_.xtalInBCIx[numberOfClusters][numberOfXtalsInCluster]=           -999999; 
+           myTreeVariables_.xtalInBCIy[numberOfClusters][numberOfXtalsInCluster]=           -999999; 
+           myTreeVariables_.xtalInBCFlag[numberOfClusters][numberOfXtalsInCluster]=         myhit.recoFlag(); 
+           myTreeVariables_.xtalInBCAmplitudeADC[numberOfClusters][numberOfXtalsInCluster]= (float) thisamp/(icalconst*lasercalib*adcToGeV);
+           myTreeVariables_.xtalInBCChi2[numberOfClusters][numberOfXtalsInCluster]=         thisChi2;
+           myTreeVariables_.xtalInBCOutOfTimeChi2[numberOfClusters][numberOfXtalsInCluster]=thisOutOfTimeChi2;
+           // note: SwissCross = 1 - E4/E1   
+           myTreeVariables_.xtalInBCSwissCross[numberOfClusters][numberOfXtalsInCluster] =
+             EcalTools::swissCross(detitr->first,*theBarrelEcalRecHits,0.5);
+
+  
+	   GlobalPoint pos = theGeometry->getPosition((myhit).detid());
+	   myTreeVariables_.xtalInBCEta[numberOfClusters][numberOfXtalsInCluster]=      pos.eta();
+	   myTreeVariables_.xtalInBCPhi[numberOfClusters][numberOfXtalsInCluster]=      pos.phi();
+	   
+	   numberOfXtalsInCluster++ ; // increment number of crystals in basic cluster
+	   

@@ -166,7 +166,7 @@ class EcalTimeTreeMaker : public edm::EDAnalyzer
 
    protected:
  
-      
+      bool _isSplash;
       edm::InputTag barrelEcalRecHitCollection_ ;
       edm::InputTag endcapEcalRecHitCollection_ ;
       edm::InputTag barrelBasicClusterCollection_ ;
