@@ -41,12 +41,18 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
 #process.load("Geometry.EcalMapping.EcalMapping_cfi")
 #process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
-## Process Digi To Raw Stepts
+## Process Digi To Raw Step
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
 ## Process Reco
 #process.muonSequence = cms.Sequence(process.calolocalreco)
-process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics + process.egammaCosmics)
+process.caloCosmics.remove(process.hbhereco)
+process.caloCosmics.remove(process.hcalLocalRecoSequence)
+process.caloCosmics.remove(process.hfreco)
+process.caloCosmics.remove(process.horeco)
+process.caloCosmics.remove(process.zdcreco)
+
+process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
 
 
 #  Producer Of Ntuple
@@ -71,7 +77,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
-    SkipEvent = cms.untracked.vstring('ProductNotFound')
+#    SkipEvent = cms.untracked.vstring('ProductNotFound')
 )
 
 # dbs search --query "find file where dataset=/ExpressPhysics/BeamCommissioning09-Express-v2/FEVT and run=124020" | grep store | awk '{printf "\"%s\",\n", $1}'
@@ -104,12 +110,13 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 ### Process Full Path
-process.p = cms.Path(process.spashesHltFilter    
-                     + process.preScaler 
+process.p = cms.Path(#process.spashesHltFilter    
+    #                 +
+    process.preScaler 
                      + process.digiStep 
                      #+ process.muonSequence 
                      + process.caloCosmicOrSplashRECOSequence 
-                     + process.ecalTimeTree
+                + process.ecalTimeTree
                     )
 
 

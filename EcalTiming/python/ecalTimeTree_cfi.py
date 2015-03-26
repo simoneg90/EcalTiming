@@ -1,9 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 
 ecalTimeTree = cms.EDAnalyzer("EcalTimeTreeMaker",
-    barrelEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEB",""),
-    endcapEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEE",""),
-
+                              isSplash=cms.bool(True),
+                              #barrelEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEB",""),
+#    endcapEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEE",""),
+                              barrelEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
+    endcapEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
     useRaw = cms.untracked.bool(False),
 
     barrelEcalUncalibratedRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEB"),
