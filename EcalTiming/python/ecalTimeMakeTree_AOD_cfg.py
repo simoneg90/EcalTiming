@@ -59,8 +59,10 @@ process.gtDigis = EventFilter.L1GlobalTriggerRawToDigi.l1GtUnpack_cfi.l1GtUnpack
 # this is the ntuple producer
 process.load("CalibCalorimetry.EcalTiming.ecalTimeTree_cfi")
 process.ecalTimeTree.fileName = 'EcalTimeTree'
-process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEB","")
-process.ecalTimeTree.endcapEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEE","")
+process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB")
+process.ecalTimeTree.endcapEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEE")
+#process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEB","")
+#process.ecalTimeTree.endcapEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEE","")
 process.ecalTimeTree.barrelBasicClusterCollection = cms.InputTag("hybridSuperClusters","hybridBarrelBasicClusters")
 process.ecalTimeTree.endcapBasicClusterCollection = cms.InputTag("multi5x5SuperClusters","multi5x5EndcapBasicClusters")
 process.ecalTimeTree.barrelSuperClusterCollection = cms.InputTag("correctedHybridSuperClusters","")
@@ -107,7 +109,7 @@ process.source = cms.Source(
     #'file:/data/franzoni/data/Run2011A-MinimumBias-RECO-PromptReco-v1-run160406-0C132C90-434F-E011-8FF6-003048D2BF1C.root'
     #'file:/data/franzoni/data/Run2011A_DoubleElectron_AOD_PromptReco-v4_000_166_946_CE9FBCFF-4B98-E011-A6C3-003048F11C58.root'
     #'root://xrootd.unl.edu//store/data/Run2012C/ElectronHad/AOD/PromptReco-v2/000/198/939/D89FF055-C1CE-E111-82AE-001D09F244DE.root'
-     'file:/data/whybee0b/user/norbert/EcalTiming/DataSet/TEST-DATA/50988619-41DE-E211-9F98-003048FFD770.root'
+    'file:/data/whybee0b/user/norbert/EcalTiming/DataSet/TEST-DATA/50988619-41DE-E211-9F98-003048FFD770.root'
 
       )
                  )

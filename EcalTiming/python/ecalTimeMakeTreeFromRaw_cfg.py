@@ -4,7 +4,10 @@ process = cms.Process("TIMECALIBANALYSIS")
 
 # gfworks: to get clustering 
 process.load('Configuration/StandardSequences/GeometryExtended_cff')
+<<<<<<< HEAD
 
+=======
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 # Geometry goodies
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
@@ -14,6 +17,7 @@ process.load("Geometry.CMSCommonData.cmsIdealGeometryXML_cfi")
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
+<<<<<<< HEAD
 ## RAWToDiGI goodies
 process.load("RecoLocalCalo.EcalRecProducers.ecalGlobalUncalibRecHit_cfi")
 process.load("RecoLocalCalo.EcalRecProducers.ecalDetIdToBeRecovered_cfi")
@@ -30,6 +34,32 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 #process.load("RecoLocalCalo.EcalRecProducers.ecalRatioUncalibRecHit_cfi")
 process.load("RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff")
 
+=======
+# unpacking
+process.load("EventFilter.EcalRawToDigi.EcalUnpackerMapping_cfi")
+process.load("EventFilter.EcalRawToDigi.EcalUnpackerData_cfi")
+
+## RAWToDiGI goodies
+#process.load("Configuration.StandardSequences.RawToDigi_Data_cff")
+process.load("RecoLocalCalo.EcalRecProducers.ecalGlobalUncalibRecHit_cfi")
+process.load("RecoLocalCalo.EcalRecProducers.ecalDetIdToBeRecovered_cfi")
+process.load("RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi")
+process.load("RecoLocalCalo.EcalRecAlgos.EcalSeverityLevelESProducer_cfi")
+process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cfi")
+process.load("RecoEcal.EgammaClusterProducers.ecalClusteringSequence_cff")
+process.load("SimCalorimetry.EcalTrigPrimProducers.ecalTriggerPrimitiveDigis_cfi")
+process.load("L1Trigger.Configuration.L1RawToDigi_cff")
+process.load("RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff")
+
+## Making Clusters from Digi
+process.load('RecoEcal.Configuration.RecoEcal_cff')
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("RecoEcal.EgammaCoreTools.EcalNextToDeadChannelESProducer_cff")
+process.load("Configuration.StandardSequences.Reconstruction_cff")
+# Make basic- and super- clustering sequences 
+import RecoEcal.EgammaClusterProducers.multi5x5ClusteringSequence_cff
+import RecoEcal.EgammaClusterProducers.hybridClusteringSequence_cff
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 
 ## GlobalTag Conditions Related
 process.load("FWCore.Modules.preScaler_cfi")
@@ -75,12 +105,19 @@ process.GlobalTag = cms.ESSource("PoolDBESSource",
 # No Idea Why it is here!!
 process.load("Geometry.CommonDetUnit.globalTrackingGeometry_cfi") 
 process.load("Geometry.MuonNumbering.muonNumberingInitialization_cfi") 
+<<<<<<< HEAD
 process.load("Configuration.StandardSequences.MagneticField_38T_cff")
 
 
 # Make basic- and super- clustering sequences 
 import RecoEcal.EgammaClusterProducers.multi5x5ClusteringSequence_cff
 
+=======
+#process.load("Configuration.StandardSequences.MagneticField_38T_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+
+
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 # L1 Triggers?
 process.load("L1TriggerConfig.L1ScalesProducers.L1MuTriggerScalesConfig_cff")
 process.load("L1TriggerConfig.L1ScalesProducers.L1MuTriggerPtScaleConfig_cff")
@@ -237,14 +274,36 @@ process.simEcalTriggerPrimitiveDigis.InstanceEB = "ebDigis"
 process.simEcalTriggerPrimitiveDigis.InstanceEE = "eeDigis"
 process.simEcalTriggerPrimitiveDigis.Label = "ecalDigis"
 
+<<<<<<< HEAD
 process.reducedEcalRecHitsEE.interestingDetIdCollections = [cms.InputTag("interestingEcalDetIdEE")]
 process.reducedEcalRecHitsEB.interestingDetIdCollections = [cms.InputTag("interestingEcalDetIdEB")]
 
 process.ecalRecHit.EEuncalibRecHitCollection = "ecalGlobalUncalibRecHit:EcalUncalibRecHitsEE"
 process.ecalRecHit.EBuncalibRecHitCollection = "ecalGlobalUncalibRecHit:EcalUncalibRecHitsEB"
+=======
+
+# get uncalibrechits with ratio method
+import RecoLocalCalo.EcalRecProducers.ecalGlobalUncalibRecHit_cfi
+process.ecalUncalibHitGlobal = RecoLocalCalo.EcalRecProducers.ecalGlobalUncalibRecHit_cfi.ecalGlobalUncalibRecHit.clone()
+process.ecalUncalibHitGlobal.EBdigiCollection = 'ecalEBunpacker:ebDigis'
+process.ecalUncalibHitGlobal.EEdigiCollection = 'ecalEBunpacker:eeDigis'
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
+
+## Get Rechits e.g From Weights
+process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cfi")
+process.load("RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi")
+process.ecalRecHit.EEuncalibRecHitCollection = "ecalGlobalUncalibRecHit:EcalUncalibRecHitsEE"
+process.ecalRecHit.EBuncalibRecHitCollection = "ecalGlobalUncalibRecHit:EcalUncalibRecHitsEB"
 
 
+<<<<<<< HEAD
+=======
+## Get Reduce Ecal Rechits
+process.load("RecoEcal.EgammaClusterProducers.reducedRecHitsSequence_cff")
+process.reducedEcalRecHitsEE.interestingDetIdCollections = [cms.InputTag("interestingEcalDetIdEE")]
+process.reducedEcalRecHitsEB.interestingDetIdCollections = [cms.InputTag("interestingEcalDetIdEB")]
 
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 #  Producer Of Ntuple
 process.load("CalibCalorimetry.EcalTiming.ecalTimeTree_cfi")
 process.ecalTimeTree.fileName ='EcalTimeTree'
@@ -257,6 +316,7 @@ process.ecalTimeTree.runNum = 144980
 
 process.ecalTimeTree.barrelEcalUncalibratedRecHitCollection = "ecalGlobalUncalibRecHit:EcalUncalibRecHitsEB"
 process.ecalTimeTree.endcapEcalUncalibratedRecHitCollection = "ecalGlobalUncalibRecHit:EcalUncalibRecHitsEE"
+<<<<<<< HEAD
 #process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB")
 #process.ecalTimeTree.endcapEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEE")
 process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEB","")
@@ -265,18 +325,35 @@ process.ecalTimeTree.barrelBasicClusterCollection  = "hybridSuperClusters:hybrid
 process.ecalTimeTree.endcapBasicClusterCollection  = "multi5x5SuperClusters:multi5x5EndcapBasicClusters"
 process.ecalTimeTree.barrelSuperClusterCollection  = "correctedHybridSuperClusters"
 process.ecalTimeTree.endcapSuperClusterCollection  = "multi5x5SuperClusters:multi5x5EndcapSuperClusters"
+=======
+
+## Use Rechits from ecalGlobalUnCalibRecHit
+#process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB")
+#process.ecalTimeTree.endcapEcalRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEE")
+
+## Use reduceEcalRechHits
+process.ecalTimeTree.barrelEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEB","")
+process.ecalTimeTree.endcapEcalRecHitCollection = cms.InputTag("reducedEcalRecHitsEE","")
+### Use Made Basic Clusters
+process.ecalTimeTree.barrelBasicClusterCollection  = cms.InputTag("hybridSuperClusters","hybridBarrelBasicClusters")
+process.ecalTimeTree.endcapBasicClusterCollection  = cms.InputTag("multi5x5SuperClusters","multi5x5EndcapBasicClusters")
+## Use Made SuperClusters
+process.ecalTimeTree.barrelSuperClusterCollection  = cms.InputTag("correctedHybridSuperClusters","")
+#process.ecalTimeTree.endcapSuperClusterCollection = cms.InputTag("correctedMulti5x5SuperClustersWithPreshower","")
+process.ecalTimeTree.endcapSuperClusterCollection  = cms.InputTag("multi5x5SuperClusters","multi5x5EndcapSuperClusters")
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 
 
 process.load("RecoVertex.Configuration.RecoVertex_cff")
 
 
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
-
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 import RecoEcal.Configuration.RecoEcal_cff
 
 ### Sequences ###
+<<<<<<< HEAD
 ## DRaw to Digi
 process.ecalPreRecoSequence = cms.Sequence(process.ecalDigis)
 
@@ -286,11 +363,54 @@ process.hybridClusteringSequence = cms.Sequence(process.cleanedHybridSuperCluste
 process.multi5x5ClusteringSequence = cms.Sequence(process.multi5x5BasicClustersCleaned+process.multi5x5SuperClustersCleaned+process.multi5x5BasicClustersUncleaned+process.multi5x5SuperClustersUncleaned+process.multi5x5SuperClusters)
 ## Reco sequence
 process.ecalRecoSequence = cms.Sequence((process.ecalGlobalUncalibRecHit+process.ecalDetIdToBeRecovered+process.ecalRecHit)+(process.simEcalTriggerPrimitiveDigis+process.gtDigis)+(process.hybridClusteringSequence+process.multi5x5ClusteringSequence)+(process.interestingEcalDetIdEB+process.interestingEcalDetIdEE+process.reducedEcalRecHitsEB+process.reducedEcalRecHitsEE))
+=======
+## Unpack Raw to Digi
+process.ecalPreRecoSequence = cms.Sequence(process.ecalEBunpacker
+                                           + process.ecalDigis
+                                          )
+
+## HybridClustering
+process.hybridClusteringSequence = cms.Sequence(process.cleanedHybridSuperClusters
+                                                + process.uncleanedHybridSuperClusters
+                                                + process.hybridSuperClusters
+                                                + process.correctedHybridSuperClusters
+                                                + process.uncleanedOnlyCorrectedHybridSuperClusters
+                                               )
+## 5x5 clustering
+process.multi5x5ClusteringSequence = cms.Sequence(process.multi5x5BasicClustersCleaned
+                                                 + process.multi5x5SuperClustersCleaned
+                                                 + process.multi5x5BasicClustersUncleaned
+                                                 + process.multi5x5SuperClustersUncleaned
+                                                 + process.multi5x5SuperClusters
+                                                 + process.multi5x5SuperClustersWithPreshower
+                                                 )
+## Reco sequence
+process.ecalRecoSequence = cms.Sequence((process.ecalGlobalUncalibRecHit
+                                         + process.ecalDetIdToBeRecovered
+                                         + process.ecalRecHit)
+                                       + (process.simEcalTriggerPrimitiveDigis
+                                          + process.gtDigis)
+                                       + (process.hybridClusteringSequence
+                                          + process.multi5x5ClusteringSequence)
+                                       + (process.interestingEcalDetIdEB
+                                          + process.interestingEcalDetIdEE
+                                          + process.reducedEcalRecHitsEB
+                                          + process.reducedEcalRecHitsEE)
+                                       )
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 
 
 
 ### Process PATH
+<<<<<<< HEAD
 process.p = cms.Path(process.preScaler + process.ecalPreRecoSequence + process.ecalRecoSequence + process.ecalTimeTree)
+=======
+process.p = cms.Path(process.preScaler 
+                     + process.ecalPreRecoSequence 
+                     + process.ecalRecoSequence 
+                     + process.ecalTimeTree
+                    )
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
 
 ### Potentiall Future Collision Reco Process
 ## Make tracks
@@ -343,18 +463,32 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
 
 
+# enable the TrigReport and TimeReport
+process.options = cms.untracked.PSet(
+    SkipEvent = cms.untracked.vstring('ProductNotFound')
+)
 
 # GF: some legacy reco files to test; replace w/ collision data
 # dbs search --query "find file where dataset=/ExpressPhysics/BeamCommissioning09-Express-v2/FEVT and run=124020" | grep store | awk '{printf "\"%s\",\n", $1}'
 process.source = cms.Source(
     "PoolSource",
     skipEvents = cms.untracked.uint32(0),
+<<<<<<< HEAD
     
+=======
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
     fileNames = cms.untracked.vstring(
     #'file:/data/franzoni/data/423_Run2011A-SingleMu-RAW-RECO-WMu-May10ReReco-v1-0000-02367CF3-DB7B-E011-8E9D-0019BB32F1EE.root'
     #'file:MyCrab/50988619-41DE-E211-9F98-003048FFD770.root'
     #'root://xrootd.unl.edu//store/data/Run2010B/Cosmics/RAW/v1/000/144/556/C8B5FCA9-F3B5-DF11-B28A-0030487CD16E.root'
+<<<<<<< HEAD
     'file:Cosmic-Commissioning2014-Cosmics-RAW-v1-AC4963B3-54BE-E311-97F5-02163E00E6E3.root'
+=======
+    #'file:Cosmic-Commissioning2014-Cosmics-RAW-v1-AC4963B3-54BE-E311-97F5-02163E00E6E3.root'
+    #'/store/data/Commissioning2015/Cosmics/RAW-RECO/CosmicSP-6Mar2015-v1/10000/248747E6-25CA-E411-B17C-02163E00BD75.root'
+    #'/store/data/Run2010B/Cosmics/RAW/v1/000/144/559/306A4ABD-F3B5-DF11-9CAD-003048F118C6.root'
+    '/store/data/Commissioning2015/Cosmics/RAW/v1/000/232/881/00000/26ADAFFB-3FAB-E411-A313-02163E011DDC.root'
+>>>>>>> 753e42015e08c7e6b94fc1bfda08c52715c63e20
      ),               
      
     # drop native rechits and clusters, to be sure only those locally made will be picked up
