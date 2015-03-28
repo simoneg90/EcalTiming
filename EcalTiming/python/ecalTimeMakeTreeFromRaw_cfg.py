@@ -4,6 +4,10 @@ process = cms.Process("TIMECALIBANALYSIS")
 
 # gfworks: to get clustering 
 process.load('Configuration/StandardSequences/GeometryExtended_cff')
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7c2e18aec70ab1bee9e87695373770b7b56496b3
 # Geometry goodies
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
@@ -457,7 +461,11 @@ process.source = cms.Source(
     #'file:Cosmic-Commissioning2014-Cosmics-RAW-v1-AC4963B3-54BE-E311-97F5-02163E00E6E3.root'
     #'/store/data/Commissioning2015/Cosmics/RAW-RECO/CosmicSP-6Mar2015-v1/10000/248747E6-25CA-E411-B17C-02163E00BD75.root'
     #'/store/data/Run2010B/Cosmics/RAW/v1/000/144/559/306A4ABD-F3B5-DF11-9CAD-003048F118C6.root'
+<<<<<<< HEAD
    #'/store/data/Commissioning2015/Cosmics/RAW/v1/000/232/881/00000/26ADAFFB-3FAB-E411-A313-02163E011DDC.root'
+=======
+    '/store/data/Commissioning2015/Cosmics/RAW/v1/000/232/881/00000/26ADAFFB-3FAB-E411-A313-02163E011DDC.root'
+>>>>>>> 7c2e18aec70ab1bee9e87695373770b7b56496b3
      ),               
      
     # drop native rechits and clusters, to be sure only those locally made will be picked up
