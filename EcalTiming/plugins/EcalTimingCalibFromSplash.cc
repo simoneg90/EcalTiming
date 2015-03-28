@@ -240,6 +240,7 @@ EcalTimingCalibFromSplash::analyze(const edm::Event& iEvent, const edm::EventSet
    if(hcalene>EnergyCutHcal_) acceptedHcal=true;
    accepted = acceptedtot|acceptedEcal|acceptedHcal;
   
+  TotalEneEB_ ->Fill(totene); 
   // Now use Accepted Splash Events!
   if (accepted) 
   {
@@ -325,7 +326,7 @@ void EcalTimingCalibFromSplash::FillRecHitEB(EcalRecHit myhit)
    //const EcalIntercalibConstantMap& icalMap = ical->getMap();
    //float adcToGeV = float(agc->getEBValue());
    // thisamp is the EB amplitude of the current rechit
-   // double thisamp = myhit.energy () ;
+    double thisamp = myhit.energy () ;
     double thistime = myhit.time ();
    // double thisChi2 = myhit.chi2 ();
     //double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
@@ -373,6 +374,7 @@ void EcalTimingCalibFromSplash::FillRecHitEB(EcalRecHit myhit)
 
      //Fill Histograms:
     calibHistEB_ ->Fill(thistime);
+    //TotalEneEB_ ->Fill(thisamp);
 }
 
 //EEM
@@ -405,6 +407,9 @@ void EcalTimingCalibFromSplash::initEBHists( edm::Service<TFileService>& fileSer
 {
  calibHistEB_ = fileService_->make<TH1F>("timingCalibDiffEB","timingCalib diff EB [ns]",400,-10,10);
  calibHistEB_->Sumw2();
+ 
+ TotalEneEB_ = fileService_->make<TH1F>("TotalEnergyEB","Total Energy EB [GeV]",400,-5,1000);
+ TotalEneEB_->Sumw2();
 
 
 }

@@ -222,6 +222,7 @@ class EcalTimingCalibFromSplash : public edm::EDAnalyzer {
      int EventRunId;
      edm::Timestamp EventTime;
      // EB Histograms
+      TH1F* TotalEneEB_;
       TH1F* calibHistEB_;
       TH1F* hitsPerCryHistEB_;
       TH2F* hitsPerCryMapEB_;
