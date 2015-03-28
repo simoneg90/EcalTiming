@@ -4,7 +4,6 @@ process = cms.Process("Demo")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 ## Run from RAW: 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
@@ -65,13 +64,21 @@ closeFileFast = cms.untracked.bool(True)
 ## Dumpevent Event Contents
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+
 # get RAW Input Files
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     skipEvents = cms.untracked.uint32(0),
     fileNames = cms.untracked.vstring(
     # 'file:Cosmic-Commissioning2014-Cosmics-RAW-v1-AC4963B3-54BE-E311-97F5-02163E00E6E3.root'
-     '/store/data/Commissioning2015/Cosmics/RAW/v1/000/232/881/00000/26ADAFFB-3FAB-E411-A313-02163E011DDC.root'
+     # '/store/data/Commissioning2015/Cosmics/RAW/v1/000/232/881/00000/26ADAFFB-3FAB-E411-A313-02163E011DDC.root'
+     # 'root://xrootd.unl.edu//store/data/Run2010B/Cosmics/RAW/v1/000/144/465/64D50D7C-DCB5-DF11-9EB0-0030487CAF0E.root'
+      '/store/data/BeamCommissioning09/BeamHalo/RAW/v1/000/119/665/58C9D466-16CA-DE11-B8AF-0030487A1990.root',
+      '/store/data/BeamCommissioning09/BeamHalo/RAW/v1/000/119/695/06FD4899-1ACA-DE11-968F-001617C3B6DE.root',
+      '/store/data/BeamCommissioning09/BeamHalo/RAW/v1/000/119/695/12A2EF4D-27CA-DE11-9BE3-000423D9880C.root',
+      '/store/data/BeamCommissioning09/BeamHalo/RAW/v1/000/119/695/1636234D-1BCA-DE11-A818-000423D99AA2.root',
+      '/store/data/BeamCommissioning09/BeamHalo/RAW/v1/000/119/695/52445558-1BCA-DE11-9596-00304867342C.root',
     ),
     # drop native rechits and clusters, to be sure only those locally made will be picked up
     inputCommands = cms.untracked.vstring('keep *'
@@ -98,8 +105,8 @@ process.SplashTiming.runNum = cms.untracked.int32(-1)
 
 
 ### Process Full Path
-process.p = cms.Path(process.spashesHltFilter
-                     + process.preScaler
+process.p = cms.Path(# process.spashesHltFilter
+                      process.preScaler
                      + process.digiStep
                      + process.caloCosmicOrSplashRECOSequence
                      + process.SplashTiming
