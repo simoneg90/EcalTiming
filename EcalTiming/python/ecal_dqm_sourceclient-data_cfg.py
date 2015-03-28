@@ -17,6 +17,7 @@ process.load("Geometry.CaloEventSetup.EcalTrigTowerConstituents_cfi")
 process.load("Geometry.CMSCommonData.cmsIdealGeometryXML_cfi")
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
+
 process.load("RecoLocalCalo.EcalRecProducers.ecalGlobalUncalibRecHit_cfi")
 process.load("RecoLocalCalo.EcalRecProducers.ecalDetIdToBeRecovered_cfi")
 process.load("RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi")
@@ -228,7 +229,6 @@ process.ecalMonitorTask.commonParameters.willConvertToEDM = False
 process.reducedEcalRecHitsEB.interestingDetIdCollections = [cms.InputTag("interestingEcalDetIdEB")]
 
 ### Sequences ###
-
 process.ecalPreRecoSequence = cms.Sequence(process.ecalDigis)
 process.ecalRecoSequence = cms.Sequence((process.ecalGlobalUncalibRecHit+process.ecalDetIdToBeRecovered+process.ecalRecHit)+(process.simEcalTriggerPrimitiveDigis+process.gtDigis)+(process.hybridClusteringSequence+process.multi5x5ClusteringSequence)+(process.interestingEcalDetIdEB+process.interestingEcalDetIdEE+process.reducedEcalRecHitsEB+process.reducedEcalRecHitsEE))
 process.multi5x5ClusteringSequence = cms.Sequence(process.multi5x5BasicClustersCleaned+process.multi5x5SuperClustersCleaned+process.multi5x5BasicClustersUncleaned+process.multi5x5SuperClustersUncleaned+process.multi5x5SuperClusters)
@@ -243,11 +243,9 @@ process.dqmEndPath = cms.EndPath(process.dqmEnv)
 process.dqmOutputPath = cms.EndPath(process.dqmSaver)
 
 ### Schedule ###
-
 process.schedule = cms.Schedule(process.ecalMonitorPath,process.ecalClientPath,process.dqmEndPath,process.dqmOutputPath)
 
 ### Setup source ###
-
 if options.inputFiles:
     process.source.fileNames = options.inputFiles
 if options.maxEvents != -1:
