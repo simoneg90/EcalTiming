@@ -30,16 +30,8 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
 process.load("FWCore.Modules.preScaler_cfi")
 process.preScaler.prescaleFactor = 1
 ## GlobalTag Conditions Related
-##process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-#process.GlobalTag.globaltag = 'GR_R_73_V3A::All'
-
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
-
-
-#process.load("Geometry.CaloEventSetup.EcalTrigTowerConstituents_cfi")
-#process.load("Geometry.EcalMapping.EcalMapping_cfi")
-#process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
 ## Process Digi To Raw Step
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
@@ -110,9 +102,8 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 ### Process Full Path
-process.p = cms.Path(#process.spashesHltFilter    
-    #                 +
-    process.preScaler 
+process.p = cms.Path( process.spashesHltFilter    
+                     + process.preScaler 
                      + process.digiStep 
                      #+ process.muonSequence 
                      + process.caloCosmicOrSplashRECOSequence 
