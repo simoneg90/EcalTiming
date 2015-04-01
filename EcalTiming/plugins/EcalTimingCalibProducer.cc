@@ -19,6 +19,7 @@
 
 // system include files
 #include <memory>
+#include <iostream>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -42,6 +43,7 @@
 
 // record to be produced:
 #include "CondFormats/DataRecord/interface/EcalTimeCalibConstantsRcd.h"
+#include "CondFormats/DataRecord/interface/EcalTimeCalibErrorsRcd.h"
 #include "CondFormats/DataRecord/interface/EcalTimeOffsetConstantRcd.h"
 #include "CondTools/Ecal/interface/EcalTimeCalibConstantsXMLTranslator.h"
 #include "CondTools/Ecal/interface/EcalTimeCalibErrorsXMLTranslator.h"
@@ -64,7 +66,9 @@ public:
 	EcalTimingCalibProducer(const edm::ParameterSet&);
 	~EcalTimingCalibProducer();
 
-	std::shared_ptr<EcalTimeCalibConstants> produce(const EcalTimeCalibConstantsRcd& iRecord);
+	std::shared_ptr<EcalTimeCalibConstants> produceCalibConstants(const EcalTimeCalibConstantsRcd& iRecord);
+	std::shared_ptr<EcalTimeCalibErrors> produce(const EcalTimeCalibErrorsRcd& iRecord);
+	std::shared_ptr<EcalTimeOffsetConstant> produce(const EcalTimeOffsetConstantRcd& iRecord);
 
 	virtual void beginOfJob(const edm::EventSetup&);
 	virtual void startingNewLoop(unsigned int ) ;
@@ -79,6 +83,7 @@ private:
 	EcalTimeCalibConstants _timeCalibConstants;
 	EcalTimeCalibErrors    _timeCalibErrors;
 	EcalTimeOffsetConstant _timeOffsetConstant;
+	std::shared_ptr<EcalTimeCalibConstants> _calibConstants;
 };
 
 //
@@ -102,10 +107,10 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 //     _ecalRecHitsEBToken(consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitEBCollection"))),
 //     _ecalRecHitsEEToken(consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitEECollection")))
 {
-	_ecalRecHitsEBToken = consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitEBCollection"));
+	//_ecalRecHitsEBToken = = consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
 	// data is being produced
-	setWhatProduced(this);
+	setWhatProduced(this, &EcalTimingCalibProducer::produceCalibConstants);
 	//now do what ever other initialization is needed
 }
 
@@ -122,12 +127,19 @@ EcalTimingCalibProducer::~EcalTimingCalibProducer()
 //
 
 // ------------ method called to produce the data  ------------
-std::shared_ptr<EcalTimeCalibConstants> EcalTimingCalibProducer::produce(const EcalTimeCalibConstantsRcd& iRecord)
+// std::shared_ptr<EcalTimeCalibConstants> EcalTimingCalibProducer::produce(const EcalTimeCalibConstantsRcd& iRecord)
+// {
+// 	using namespace edm::es;
+// 	//std::auto_ptr<EcalTimeCalibConstants> pMyType;
+// 	//return products(pMyType);
+// 	return NULL;
+// }
+std::shared_ptr<EcalTimeCalibConstants> EcalTimingCalibProducer::produceCalibConstants(const EcalTimeCalibConstantsRcd& iRecord)
 {
 	using namespace edm::es;
 	//std::auto_ptr<EcalTimeCalibConstants> pMyType;
 	//return products(pMyType);
-	return NULL;
+	return _calibConstants;
 }
 
 
@@ -148,14 +160,15 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 {
 	// here the getByToken of the rechits
 	edm::Handle<EBRecHitCollection> ebRecHitHandle;
-	iEvent.getByToken(_ecalRecHitsEBToken, ebRecHitHandle);
+	//iEvent.getByToken(_ecalRecHitsEBToken, ebRecHitHandle);
+	iEvent.getByLabel("ecalRecHitsEB", ebRecHitHandle);
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByToken(_ecalRecHitsEEToken, eeRecHitHandle);
 
 	typedef std::map<DetId, EcalCrystalTimingCalibration> EcalTimeCalibrationMap;
 	EcalTimeCalibrationMap timeCalibMap;
 	// loop over the recHits
-// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
+	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
 		// for each recHit create a EcalTimingEvent
 		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), false);
@@ -165,6 +178,11 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 	for(auto recHit_itr = eeRecHitHandle->begin(); recHit_itr != eeRecHitHandle->end(); ++recHit_itr) {
 		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), true);
+		timeCalibMap[recHit_itr->detid()].add(timeEvent);
+	}
+
+	for(auto calibRecHit_itr = timeCalibMap.begin(); calibRecHit_itr != timeCalibMap.end(); ++calibRecHit_itr) {
+		std::cout << calibRecHit_itr->second.mean() << "\t" << calibRecHit_itr->second.stdDev() << std::endl;
 	}
 
 	// any etaRing check?
