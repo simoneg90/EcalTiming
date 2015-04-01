@@ -12,7 +12,7 @@
 class EcalCrystalTimingCalibration
 {
 public:
-	DetId _detId; ///< detId of the channel
+//	DetId _detId; ///< detId of the channel
 
 
 private:
@@ -28,7 +28,8 @@ private:
 public:
 	/// default constructor
 	EcalCrystalTimingCalibration(bool weightMean = true) :
-		_detId(), _sum(0), _sum2(0), _num(0)
+		//_detId(),
+		_sum(0), _sum2(0), _num(0)
 		//totalChi2(-1),
 		//useWeightedMean(weightMean)
 	{
@@ -48,11 +49,11 @@ public:
 		return stdDev() / sqrt(_num);
 	};
 
-	bool operator<( EcalCrystalTimingCalibration& rhs)
-	{
-		if(_detId < rhs._detId) return true;
-		else return false;
-	}
+	/* bool operator<( EcalCrystalTimingCalibration& rhs) */
+	/* { */
+	/* 	if(_detId < rhs._detId) return true; */
+	/* 	else return false; */
+	/* } */
 	//float totalChi2;
 
 
@@ -98,8 +99,8 @@ private:
 	bool insertEvent(EcalTimingEvent te_)
 	{
 		if(te_._sigmaTime > 0) {
-			_sum += te_._amplitude;
-			_sum2 += te_._amplitude * te_._amplitude;
+			_sum += te_._time;
+			_sum2 += te_._time * te_._time;
 			_num++;
 			timingEvents.push_back(te_);
 			//updateChi2();
