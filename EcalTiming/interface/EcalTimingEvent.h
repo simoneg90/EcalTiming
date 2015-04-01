@@ -1,42 +1,51 @@
+//#include
+
+/** \class EcalTimingEvent EcalTiming.cc EcalTiming.cc
+ *
+ * Description: basic timing information
+ */
+
 class EcalTimingEvent
 {
-  public:
-    float amplitude;
-    float time;
-    float chi2;
-    float sigmaTime;
-    float expectedPrecision;
+public:
+	float _amplitude;
+	float _time;
+	float _chi2;
+	float _sigmaTime;
+	float _expectedPrecision;
 
-    EcalTimingEvent() :
-      amplitude(-1),
-      time(-1),
-      chi2(-1),
-      sigmaTime(-1),
-      expectedPrecision(-1)
-    {
-    }
-    
-    EcalTimingEvent(float amp,float t,float sigmaT, bool ee) : 
-      amplitude(amp), 
-      time(t), 
-      chi2(-1),
-      sigmaTime(sigmaT)
-    {
-      if(ee)
-        expectedPrecision = 33/(amplitude/2.0);
-      else
-        expectedPrecision = 33/(amplitude/1.2);
-    }
+	/* EcalTimingEvent() : */
+	/* 	amplitude(-1), */
+	/* 	time(-1), */
+	/* 	chi2(-1), */
+	/* 	sigmaTime(-1), */
+	/* 	expectedPrecision(-1) */
+	/* { */
+	/* } */
 
-    bool operator==(const EcalTimingEvent &first) const
-    {
-      // only check amp, time, sigmaT
-      if(first.amplitude==this->amplitude &&
-         first.time==this->time &&
-         first.sigmaTime==this->sigmaTime)
-        return true;
+	EcalTimingEvent (float amplitude_, float time_, float sigmaTime_, bool ee) :
+		_amplitude (amplitude_),
+		_time (time_),
+		_chi2 (-1),
+		_sigmaTime (sigmaTime_)
+	{
+		if (ee) {
+			_expectedPrecision = 33 / (_amplitude / 2.0);
+		} else {
+			_expectedPrecision = 33 / (_amplitude / 1.2);
+		}
+	}
 
-      return false;
-    }
+	bool operator== (const EcalTimingEvent &first) const
+	{
+		// only check amp, time, sigmaT
+		if (first._amplitude == this->_amplitude &&
+		        first._time == this->_time &&
+		        first._sigmaTime == this->_sigmaTime) {
+			return true;
+		}
+
+		return false;
+	}
 
 };
