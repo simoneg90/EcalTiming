@@ -19,7 +19,7 @@ private:
 
 	float _sum; ///< scalar sum of the time of each timingEvent
 	float _sum2; ///< scalar sum of the square of the time of each timingEvent
-	float _num; ///< number of timingEvents;
+	unsigned long int _num; ///< number of timingEvents;
 
 	std::vector<EcalTimingEvent> timingEvents; ///< vector containing  all the events for this crystal
 	std::vector<EcalTimingEvent>::iterator maxChi2Itr;
@@ -35,16 +35,20 @@ public:
 	{
 	}
 
-	inline float mean()
+	inline unsigned int num() const
+	{
+		return _num;
+	};
+	inline float mean() const
 	{
 		return _sum / _num;
 	}; ///< average time (mean of the time distribution)
-	inline float stdDev()   ///< standard deviation of the time distribution
+	inline float stdDev() const  ///< standard deviation of the time distribution
 	{
 		float mean_ = mean();
 		return sqrt(_sum2 / _num - mean_ * mean_);
 	}
-	inline float meanError()
+	inline float meanError() const
 	{
 		return stdDev() / sqrt(_num);
 	};
@@ -89,6 +93,12 @@ public:
 	/* 	} */
 	/* } */
 
+	friend ostream& operator<< (ostream& os, const EcalCrystalTimingCalibration& s)
+	{
+		os << s.mean() << "\t" << s.stdDev() << "\t" << s.num();
+		return os;
+	}
+
 	/// add new event for this crystal
 	inline bool add(EcalTimingEvent te_)
 	{
@@ -98,7 +108,7 @@ private:
 	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_)
 	{
-		if(te_._sigmaTime > 0) {
+		if(true || te_._sigmaTime > 0) {
 			_sum += te_._time;
 			_sum2 += te_._time * te_._time;
 			_num++;

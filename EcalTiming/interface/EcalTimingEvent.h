@@ -1,6 +1,8 @@
 #ifndef ecaltimingevent_hh
 #define ecaltimingevent_hh
 
+#include <iostream>
+
 /** \class EcalTimingEvent EcalTiming.cc EcalTiming.cc
  *
  * Description: basic timing information
@@ -35,6 +37,12 @@ public:
 		} else {
 			_expectedPrecision = 33 / (_energy / 1.2);
 		}
+	}
+
+	friend ostream& operator << (ostream& os, const EcalTimingEvent& event)
+	{
+		os << event._time << "\t" << event._sigmaTime << "\t" << event._energy;
+		return os;
 	}
 
 	bool operator== (const EcalTimingEvent &first) const
