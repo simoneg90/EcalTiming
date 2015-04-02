@@ -12,7 +12,7 @@
      [Notes on implementation]
 */
 //
-// Original Author:  Tambe Ebai Norbert & Peter Hansen
+// Original Author:  Tambe Ebai Norbert, Shervin N  & Peter Hansen
 //         Created:  Wed, 18 Mar 2015 18:12:02 GMT
 //
 //
@@ -253,13 +253,39 @@ EcalTimingCalibFromSplash::analyze(const edm::Event& iEvent, const edm::EventSet
     // Extract Splash Timing
  for(EBRecHitCollection::const_iterator thisit = EBRecHits->begin(); thisit != EBRecHits->end(); ++thisit)
     {
-
     EcalRecHit myhit = (*thisit);
 	     
    // skip if not good
    if( !( myhit.checkFlag(EcalRecHit::kGood) ||  myhit.checkFlag(EcalRecHit::kOutOfTime) || myhit.checkFlag(EcalRecHit::kPoorCalib)) ) continue;
+   
+  if( myhit.detid().det() == DetId::Ecal && myhit.detid().subdetId()==EcalBarrel)
+      {// Fill Histograms Unclorrected Timing
+       FillRecHitEB(myhit); 
+     }
+   // Correct Splash Timing EB
+   //double SplashTravTimeEB = SlashTimeCorr(pgeometryEB, DId);
+ }
+
+ //EEM
+ for(EERecHitCollection::const_iterator thisit = EERecHits->begin(); thisit != EERecHits->end(); ++thisit)
+    {
+    EcalRecHit myhit = (*thisit);
+	     
+   // skip if not good
+   if( !( myhit.checkFlag(EcalRecHit::kGood) ||  myhit.checkFlag(EcalRecHit::kOutOfTime) || myhit.checkFlag(EcalRecHit::kPoorCalib)) ) continue;
+    // Create EE Detid
+     EEDetId myanid(thisit->id());
+    // EEDetId myanid(myhit->detid());
    // Fill Histograms Unclorrected Timing
-   FillRecHitEB(myhit); 
+   if( myhit.detid().det() == DetId::Ecal && myhit.detid().subdetId()==EcalEndcap)
+     {
+       if(myanid.zside() == 1 )
+         {
+           FillRecHitEEP(myhit);
+       }else{
+             FillRecHitEEM(myhit);
+        }
+     } 
    // Correct Splash Timing EB
    //double SplashTravTimeEB = SlashTimeCorr(pgeometryEB, DId);
  }
@@ -328,6 +354,10 @@ void EcalTimingCalibFromSplash::FillRecHitEB(EcalRecHit myhit)
    // thisamp is the EB amplitude of the current rechit
     double thisamp = myhit.energy () ;
     double thistime = myhit.time ();
+    EBDetId mydetId(myhit.detid());
+   
+    int ieta = mydetId.ieta();
+    int iphi = mydetId.iphi();
    // double thisChi2 = myhit.chi2 ();
     //double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
    /*
@@ -336,9 +366,10 @@ void EcalTimingCalibFromSplash::FillRecHitEB(EcalRecHit myhit)
     double secondMin = 0. ;
     double secondTime = -1000.;
     double thistimeErr = 0;
+    
   
-    EEDetId maxDet ;
-    EEDetId secDet ;
+    EBDetId maxDet ;
+    EBDetId secDet ;
  
    EcalIntercalibConstantMap::const_iterator icalit = icalMap.find(detitr->first);
    EcalIntercalibConstant icalconst = 1;
@@ -373,18 +404,39 @@ void EcalTimingCalibFromSplash::FillRecHitEB(EcalRecHit myhit)
     // else thistimeErr = -9999999;
 
      //Fill Histograms:
-    calibHistEB_ ->Fill(thistime);
-    //TotalEneEB_ ->Fill(thisamp);
+    //calibHistEB_ ->Fill(thistime);
+    recHitTimeEB_ ->Fill(thistime);
+    recHitEneEB_ ->Fill(thisamp);
+    recHitTimeVsEneEB_->Fill(thistime, thisamp);
+    recHitTimeVsEtaEB_->Fill(ieta, thistime);
+    recHitTimeVsPhiEB_->Fill(iphi, thistime);
+    recHitEneVsEtaEB_->Fill(ieta, thisamp);
+    recHitEneVsPhiEB_->Fill(iphi, thisamp);
+
 }
 
 //EEM
 void EcalTimingCalibFromSplash::FillRecHitEEM(EcalRecHit myhit)
 {
 
+    double thisamp = myhit.energy () ;
+    double thistime = myhit.time ();
+    EEDetId mydetId (myhit.detid());
+    
+    recHitTimeEEM_ ->Fill(thistime);
+    recHitEneEEM_ ->Fill(thisamp);
+    recHitTimeVsEneEEM_->Fill(thistime, thisamp);
 }
 //EEP
 void EcalTimingCalibFromSplash::FillRecHitEEP(EcalRecHit myhit)
 {
+    double thisamp = myhit.energy () ;
+    double thistime = myhit.time ();
+    EEDetId mydetId( myhit.detid());
+    
+    recHitTimeEEP_ ->Fill(thistime);
+    recHitEneEEP_ ->Fill(thisamp);
+    recHitTimeVsEneEEP_->Fill(thistime, thisamp);
 }
 
 //TimeOfFlight Corrector//
@@ -405,25 +457,62 @@ std::string EcalTimingCalibFromSplash::intToString(int num)
 // Initilise Histograms//
 void EcalTimingCalibFromSplash::initEBHists( edm::Service<TFileService>& fileService_)
 {
- calibHistEB_ = fileService_->make<TH1F>("timingCalibDiffEB","timingCalib diff EB [ns]",400,-10,10);
- calibHistEB_->Sumw2();
+  //calibHistEB_ = fileService_->make<TH1F>("timingCalibDiffEB","timingCalib diff EB [ns]",400,-10,10);
+  //calibHistEB_->Sumw2();
  
- TotalEneEB_ = fileService_->make<TH1F>("TotalEnergyEB","Total Energy EB [GeV]",400,-5,1000);
+ TotalEneEB_ = fileService_->make<TH1F>("TotalEnergyEB","Total Energy EB [GeV]",400,-5.0,400.0);
  TotalEneEB_->Sumw2();
+ 
+ recHitEneEB_ = fileService_->make<TH1F>("recHitEneEB","RecHit Energy EB",300,-5.0,300.);
+ recHitEneEB_->Sumw2();
+ 
+ recHitTimeEB_ = fileService_->make<TH1F>("recHitTimeEB","RecHit Time EB",100,-25.0,25.0);
+ recHitTimeEB_->Sumw2();
+ 
+ recHitTimeVsEneEB_ = fileService_->make<TH2F>("recHitTimeVsEneEB","RecHit Time Vs Energy EB",100, -40.0, 40.0,400,-5.0,400.0 );
+ recHitTimeVsEneEB_->Sumw2();
+ 
+ recHitTimeVsEtaEB_ = fileService_->make<TH2F>("recHitTimeVsEtaEB","RecHit Time Vs Eta EB",100, -4.0, 4.0,100,-40.0,40.0 );
+ recHitTimeVsEtaEB_->Sumw2();
+ 
+ recHitTimeVsPhiEB_ = fileService_->make<TH2F>("recHitTimeVsPhiEB","RecHit Time Vs Phi EB",100, -4.0, 4.0,100,-40.0,40.0 );
+ recHitTimeVsPhiEB_->Sumw2();
 
+ recHitEneVsEtaEB_ = fileService_->make<TH2F>("recHitEneVsEtaEB","RecHit Energy Vs Eta EB",100, -4.0, 4.0,100,-5.0,400.0 );
+ recHitEneVsEtaEB_->Sumw2();
+ 
+ recHitEneVsPhiEB_ = fileService_->make<TH2F>("recHitEneVsPhiEB","RecHit Energy Vs Phi EB",100, -4.0, 4.0,100,-5.0,400.0 );
+ recHitEneVsPhiEB_->Sumw2();
 
 }
 void EcalTimingCalibFromSplash::initEEMHists( edm::Service<TFileService>& fileService_)
 {
- calibHistEEM_ = fileService_->make<TH1F>("timingCalibDiffsEEM","timingCalibDiffs EEM [ns]",400,-10,10);
- calibHistEEM_->Sumw2();
+ //calibHistEEM_ = fileService_->make<TH1F>("timingCalibDiffsEEM","timingCalibDiffs EEM [ns]",400,-10,10);
+ //calibHistEEM_->Sumw2();
+ 
+ recHitEneEEM_ = fileService_->make<TH1F>("recHitEneEEM","RecHit Energy EE-",2000,-5.0,1000.);
+ recHitEneEEM_->Sumw2();
+ 
+ recHitTimeEEM_ = fileService_->make<TH1F>("recHitTimeEEM","RecHit Time EE-",100,-25.0,25.0);
+ recHitTimeEEM_->Sumw2();
+ 
+ recHitTimeVsEneEEM_ = fileService_->make<TH2F>("recHitTimeVsEneEEM","RecHit Time Vs Energy EE-",100, -25.0, 25.0,2000,-5.0,1000.0 );
+ recHitTimeVsEneEEM_->Sumw2();
 }
 
 void EcalTimingCalibFromSplash::initEEPHists( edm::Service<TFileService>& fileService_)
 {
 
- calibHistEEP_ = fileService_->make<TH1F>("timingCalibDiffsEEP","timingCalibDiffs EEP [ns]",400,-10,10);
- calibHistEEP_->Sumw2();
+// calibHistEEP_ = fileService_->make<TH1F>("timingCalibDiffsEEP","timingCalibDiffs EEP [ns]",400,-10,10);
+// calibHistEEP_->Sumw2();
+ recHitEneEEP_ = fileService_->make<TH1F>("recHitEneEEP","RecHit Energy EE+",2000,-5.0,1000.);
+ recHitEneEEP_->Sumw2();
+ 
+ recHitTimeEEP_ = fileService_->make<TH1F>("recHitTimeEEP","RecHit Time EE+",100,-25.0,25.0);
+ recHitTimeEEP_->Sumw2();
+ 
+ recHitTimeVsEneEEP_ = fileService_->make<TH2F>("recHitTimeVsEneEEP","RecHit Time Vs Energy EE+",100, -25.0, 25.0,2000,-5.0,1000.0 );
+ recHitTimeVsEneEEP_->Sumw2();
 }
 
 

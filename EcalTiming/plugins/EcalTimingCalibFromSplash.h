@@ -223,6 +223,14 @@ class EcalTimingCalibFromSplash : public edm::EDAnalyzer {
      edm::Timestamp EventTime;
      // EB Histograms
       TH1F* TotalEneEB_;
+      TH1F* recHitEneEB_;
+      TH1F* recHitTimeEB_;
+      TH2F* recHitEneVsEtaEB_;
+      TH2F* recHitEneVsPhiEB_;
+      TH2F* recHitTimeVsEtaEB_;
+      TH2F* recHitTimeVsPhiEB_;
+      TH2F* recHitTimeVsEneEB_;
+
       TH1F* calibHistEB_;
       TH1F* hitsPerCryHistEB_;
       TH2F* hitsPerCryMapEB_;
@@ -237,6 +245,14 @@ class EcalTimingCalibFromSplash : public edm::EDAnalyzer {
       TH1F* triggerTowerTimingHistsEB_[2488];
      
      // EEM   
+     TH1F* recHitEneEEM_;
+     TH1F* recHitTimeEEM_;
+     TH2F* recHitEneVsEtaEEM_;
+     TH2F* recHitEneVsPhiEEM_;
+     TH2F* recHitTimeVsEtaEEM_;
+     TH2F* recHitTimeVsPhiEEM_;
+     TH2F* recHitTimeVsEneEEM_;
+     
      TH1F* calibHistEEM_;
      TH2F* hitsPerCryMapEEM_;
      TH1F* hitsPerCryHistEEM_;
@@ -248,6 +264,14 @@ class EcalTimingCalibFromSplash : public edm::EDAnalyzer {
      TH1F* superModuleTimingHistsEEM_[9];
   
      //EEP
+     TH1F* recHitEneEEP_;
+     TH1F* recHitTimeEEP_;
+     TH2F* recHitEneVsEtaEEP_;
+     TH2F* recHitEneVsPhiEEP_;
+     TH2F* recHitTimeVsEtaEEP_;
+     TH2F* recHitTimeVsPhiEEP_;
+     TH2F* recHitTimeVsEneEEP_;
+     
      TH1F* calibHistEEP_;
      TH2F* hitsPerCryMapEEP_;
      TH1F* hitsPerCryHistEEP_;

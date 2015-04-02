@@ -64,7 +64,7 @@ closeFileFast = cms.untracked.bool(True)
 ## Dumpevent Event Contents
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
 # get RAW Input Files
 process.source = cms.Source("PoolSource",
@@ -92,9 +92,9 @@ process.source = cms.Source("PoolSource",
 #process.SplashTiming = cms.EDAnalyzer('EcalTimingCalibFromSplash',
 process.load("CalibCalorimetry.EcalTiming.ecalTimingCalibFromSplash_cfi")
 
-process.SplashTiming.energycuttot = cms.untracked.double(1000.0) # Total Energy 
-process.SplashTiming.energycutecal  = cms.untracked.double(700.0) ## Total Energy in ECAL
-process.SplashTiming.energycuthcal  = cms.untracked.double(700.0) ## Tota; Energy in HCAL
+process.SplashTiming.energycuttot = cms.untracked.double(200.0) # Total Energy 
+process.SplashTiming.energycutecal  = cms.untracked.double(100.0) ## Total Energy in ECAL
+process.SplashTiming.energycuthcal  = cms.untracked.double(100.0) ## Tota; Energy in HCAL
 process.SplashTiming.minEtEB = cms.untracked.double(2.0) ## 2GeV Transverse energy cut.
 process.SplashTiming.minEtEE = cms.untracked.double(3.0)
 process.SplashTiming.hbTreshold = cms.untracked.double(1.)
