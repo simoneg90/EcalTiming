@@ -4,9 +4,8 @@
 
 /** \class EcalCrystalTimingCalibration EcalCrystalTimingCalibration.cc EcalCrystalTimingCalibration.cc
  *
- *
- * This class contains all the timing information for a single crystal:
- * time information per event (EcalTimingEvent) are collected
+ * Description: add a description here
+ * This class contains all the timing information for a single crystal
  */
 
 
@@ -28,7 +27,7 @@ private:
 
 public:
 	/// default constructor
-	EcalCrystalTimingCalibration(bool weightMean = true) : ///< \todo the sum should be weighted by the timeError!
+	EcalCrystalTimingCalibration(bool weightMean = true) :
 		//_detId(),
 		_sum(0), _sum2(0), _num(0)
 		//totalChi2(-1),
@@ -36,20 +35,15 @@ public:
 	{
 	}
 
-/// number of events
 	inline unsigned int num() const
 	{
 		return _num;
 	};
-
-	/// average time (mean of the time distribution)
 	inline float mean() const
 	{
 		return _sum / _num;
-	};
-
-/// standard deviation of the time distribution
-	inline float stdDev() const
+	}; ///< average time (mean of the time distribution)
+	inline float stdDev() const  ///< standard deviation of the time distribution
 	{
 		float mean_ = mean();
 		return sqrt(_sum2 / _num - mean_ * mean_);
@@ -99,7 +93,6 @@ public:
 	/* 	} */
 	/* } */
 
-	/// print mean, stdDev and num
 	friend ostream& operator<< (ostream& os, const EcalCrystalTimingCalibration& s)
 	{
 		os << s.mean() << "\t" << s.stdDev() << "\t" << s.num();
@@ -107,16 +100,15 @@ public:
 	}
 
 	/// add new event for this crystal
-	inline bool add(EcalTimingEvent te_) /// add new event for this channel
+	inline bool add(EcalTimingEvent te_)
 	{
 		return insertEvent(te_);
 	}
 private:
-
+	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_)
 	{
-		///< \todo weighted average by timeError
-		if(true || te_._timeError > 0) {
+		if(true || te_._sigmaTime > 0) {
 			_sum += te_._time;
 			_sum2 += te_._time * te_._time;
 			_num++;

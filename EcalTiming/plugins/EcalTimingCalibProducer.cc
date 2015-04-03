@@ -80,6 +80,9 @@ private:
 	edm::InputTag _ecalRecHitsEBTAG;
 	edm::InputTag _ecalRecHitsEETAG;
 
+
+
+
 	// Create calibration container objects -> to be used in beginOfJob
 	void createConstants(const edm::EventSetup& iSetup)
 	{
@@ -121,7 +124,7 @@ private:
 
 	EcalTimeCalibErrors    _timeCalibErrors;
 	boost::shared_ptr<EcalTimeCalibErrors> _calibErrors;
-	inline boost::shared_ptr<EcalTimeCalibErrors> produceCalibErrors(const EcalTimeCalibErrorsRcd& iRecord)
+	inline boost::shared_ptr<EcalTimeCalibErrors>& produceCalibErrors(const EcalTimeCalibErrorsRcd& iRecord)
 	{
 		_calibErrors = boost::shared_ptr<EcalTimeCalibErrors>( new EcalTimeCalibErrors(_timeCalibErrors) );
 		return _calibErrors;
@@ -129,7 +132,7 @@ private:
 
 	EcalTimeOffsetConstant _timeOffsetConstant;
 	boost::shared_ptr<EcalTimeOffsetConstant> _offsetConstant;
-	inline boost::shared_ptr<EcalTimeOffsetConstant> produceOffsetConstant(const EcalTimeOffsetConstantRcd& iRecord)
+	inline boost::shared_ptr<EcalTimeOffsetConstant>& produceOffsetConstant(const EcalTimeOffsetConstantRcd& iRecord)
 	{
 		_offsetConstant = boost::shared_ptr<EcalTimeOffsetConstant>( new EcalTimeOffsetConstant(_timeOffsetConstant) );
 		return _offsetConstant;
@@ -160,8 +163,8 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	//the following line is needed to tell the framework what
 	// data is being produced
 	setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
-//	setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibErrors);
-	setWhatProduced(this,  &EcalTimingCalibProducer::produceOffsetConstant);
+//	setWhatProduced(this, &EcalTimingCalibProducer::produceCalibErrors);
+	//setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
 	//now do what ever other initialization is needed
 }
 
@@ -173,11 +176,25 @@ EcalTimingCalibProducer::~EcalTimingCalibProducer()
 }
 
 
+//
+// member functions
+//
+
+// ------------ method called to produce the data  ------------
+// std::shared_ptr<EcalTimeCalibConstants> EcalTimingCalibProducer::produce(const EcalTimeCalibConstantsRcd& iRecord)
+// {
+// 	using namespace edm::es;
+// 	//std::auto_ptr<EcalTimeCalibConstants> pMyType;
+// 	//return products(pMyType);
+// 	return NULL;
+// }
+
+
 
 // ------------ method called once per job just before starting to loop over events  ------------
 void EcalTimingCalibProducer::beginOfJob(const edm::EventSetup& iSetup)
 {
-//	std::cout << "Begin job: createConstants" << std::endl;
+	std::cout << "Begin job: createConstants" << std::endl;
 	createConstants(iSetup);
 }
 
@@ -185,7 +202,7 @@ void EcalTimingCalibProducer::beginOfJob(const edm::EventSetup& iSetup)
 // ------------ the argument starts at 0 and increments for each loop        ------------
 void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 {
-//	std::cout << "Starting new loop: " << iIteration << std::endl;
+	std::cout << "Starting new loop: " << iIteration << std::endl;
 #ifdef DEBUG
 	auto calib2_itr = _calibConstants->find(RAWIDCRY); //begin();
 	std::cout << "index\tcalibConstants\ttimeCalibConstants\n"
@@ -213,7 +230,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
 		// for each recHit create a EcalTimingEvent
-		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy());
+		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), false);
 #ifdef DEBUG
 		if(recHit_itr->detid().rawId() == RAWIDCRY) std::cout << timeEvent << "\t <- " << recHit_itr->timeError() << std::endl;
 #endif
@@ -223,7 +240,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 	// same for EE
 	for(auto recHit_itr = eeRecHitHandle->begin(); recHit_itr != eeRecHitHandle->end(); ++recHit_itr) {
-		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy());
+		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), true);
 		assert(_timeCalibMap[recHit_itr->detid()].add(timeEvent));
 	}
 
@@ -279,6 +296,32 @@ void
 EcalTimingCalibProducer::endOfJob()
 {
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //define this as a plug-in
