@@ -78,8 +78,8 @@ process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
                             #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
   fileNames = cms.untracked.vstring(
-        #'file:FE13B243-C0D8-E411-ADAC-02163E011D52.root')
-        '/store/data/Commissioning2015/Cosmics/RAW/v1/000/239/517/00000/FE13B243-C0D8-E411-ADAC-02163E011D52.root')
+        'file:FE13B243-C0D8-E411-ADAC-02163E011D52.root')
+#        '/store/data/Commissioning2015/Cosmics/RAW/v1/000/239/517/00000/FE13B243-C0D8-E411-ADAC-02163E011D52.root')
 )
 
 # process.source = cms.Source(

@@ -2,13 +2,15 @@
 DOCCONF=fulldoc
 mainDir=$PWD
 docDir=doc/doxygen/${DOCCONF}/
+
+remote="git@github.com:shervin86/CalibCalorimetry.git"
 if [ ! -d "${docDir}" ];then
     mkdir -p ${docDir}
 fi
 
 if [ ! -d "${docDir}/html" ];then
     cd ${docDir}
-    git clone -b gh-pages  git@github.com:UMN-CMS/cms-WR.git html
+    git clone -b gh-pages  $remote html
     cd ${mainDir}
 else
     cd ${docDir}/html
@@ -16,7 +18,7 @@ else
 	cd ${mainDir}
 	rm ${docDir}/html/ -Rf
 	cd ${docDir}/
-	git clone -b gh-pages  git@github.com:UMN-CMS/cms-WR.git html
+	git clone -b gh-pages  $remote html
 	cd ${mainDir}
     fi
 fi
