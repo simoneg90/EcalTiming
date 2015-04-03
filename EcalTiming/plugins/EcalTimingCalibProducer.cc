@@ -84,14 +84,16 @@ private:
 		edm::ESHandle<EcalTimeCalibConstants> ecalTimeCalibConstantsHandle;
 		iSetup.get<EcalTimeCalibConstantsRcd>().get( ecalTimeCalibConstantsHandle);
 		_timeCalibConstants = *ecalTimeCalibConstantsHandle;
-		_calibConstants = std::make_shared<EcalTimeCalibConstants>(_timeCalibConstants);
+		//_calibConstants = boost::shared_ptr<EcalTimeCalibConstants> (new EcalTimeCalibConstants(*ecalTimeCalibConstantsHandle));
 	}
 
 	EcalTimeCalibConstants _timeCalibConstants;
-	std::shared_ptr<EcalTimeCalibConstants> _calibConstants;
-	virtual std::shared_ptr<EcalTimeCalibConstants> produceCalibConstants(const EcalTimeCalibConstantsRcd& iRecord)
+	boost::shared_ptr<EcalTimeCalibConstants> _calibConstants;
+	inline boost::shared_ptr<EcalTimeCalibConstants> produceCalibConstants(const EcalTimeCalibConstantsRcd& iRecord)
 	{
-		return _calibConstants;
+		_calibConstants = boost::shared_ptr<EcalTimeCalibConstants>( new EcalTimeCalibConstants() );
+		return  _calibConstants;
+		//return _calibConstants;
 		//return
 	}
 
@@ -141,7 +143,7 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
 	// data is being produced
-	setWhatProduced(this, &EcalTimingCalibProducer::produceCalibConstants);
+	setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
 //	setWhatProduced(this, &EcalTimingCalibProducer::produceCalibErrors);
 //	setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
 	//now do what ever other initialization is needed
@@ -185,8 +187,9 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 }
 
 // ------------ called for each event in the loop.  The present event loop can be stopped by return kStop ------------
-EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::Event& iEvent, const edm::EventSetup&)
+EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+	createConstants(iSetup);
 	// here the getByToken of the rechits
 	edm::Handle<EBRecHitCollection> ebRecHitHandle;
 	//iEvent.getByLabel(_ecalRecHitsEBToken, ebRecHitHandle);
@@ -228,26 +231,39 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 #ifndef DEBUG
 	unsigned int nDebugIter = 10, iDebugIter = 0;
 
-	for(auto calib_itr = _timeCalibConstants.barrelItems().begin(); iDebugIter < nDebugIter && calib_itr != _timeCalibConstants.barrelItems().end(); ++calib_itr, ++iDebugIter) {
-		std::cout << iDebugIter << "\t" << calib_itr - _timeCalibConstants.begin() << "\t" << *calib_itr << std::endl;
+	for(auto calib_itr = _calibConstants->barrelItems().begin(); iDebugIter < nDebugIter && calib_itr != _calibConstants->barrelItems().end(); ++calib_itr, ++iDebugIter) {
+		std::cout << iDebugIter << "\t" << calib_itr - _calibConstants->begin() << "\t" << *calib_itr << std::endl;
 	}
 #endif
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
 #ifdef DEBUG
-		std::cout << *(_timeCalibConstants.find(calibRecHit_itr->first.rawId())) << "\t" << calibRecHit_itr->first.rawId() << "\t" << calibRecHit_itr->second.mean()
-		          << std::endl;
+		std::cout
+		        << calibRecHit_itr->first.rawId() << "\t" << calibRecHit_itr->second.mean()
+		        << *(_calibConstants->find(calibRecHit_itr->first.rawId()))
+		        << "\t" 		          ;
 #endif
-		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), calibRecHit_itr->second.mean());
+		_calibConstants->setValue(calibRecHit_itr->first.rawId(), calibRecHit_itr->second.mean());
+		_calibConstants->setValue(calibRecHit_itr->first.rawId(), 1.12);
+#ifdef DEBUG
+		std::cout
+		        << *(_calibConstants->find(calibRecHit_itr->first.rawId()))
+		        << std::endl;
+#endif
 	}
 
+#ifdef DEBUG
 	nDebugIter = 10;
 	iDebugIter = 0;
 
-	for(auto calib_itr = _timeCalibConstants.barrelItems().begin(); iDebugIter < nDebugIter && calib_itr != _timeCalibConstants.barrelItems().end(); ++calib_itr, ++iDebugIter) {
-		std::cout << iDebugIter << "\t" << calib_itr - _timeCalibConstants.begin() << "\t" << *calib_itr << std::endl;
+	for(auto calib_itr = _calibConstants->barrelItems().begin(); iDebugIter < nDebugIter && calib_itr != _calibConstants->barrelItems().end(); ++calib_itr, ++iDebugIter) {
+		std::cout << iDebugIter << "\t" << calib_itr - _calibConstants->begin() << "\t" << *calib_itr << std::endl;
 	}
 
-
+	iDebugIter = 0;
+	for(auto calib_itr = _calibConstants->endcapItems().begin(); iDebugIter < nDebugIter && calib_itr != _calibConstants->endcapItems().end(); ++calib_itr, ++iDebugIter) {
+		std::cout << "EE\t" << iDebugIter << "\t" << calib_itr - _calibConstants->endcapItems().begin() << "\t" << *calib_itr << std::endl;
+	}
+#endif
 
 	// save the xml
 
