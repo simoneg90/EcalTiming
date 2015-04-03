@@ -3,7 +3,7 @@
 // Package:    CalibCalorimetry/EcalTimingCalibProducer
 // Class:      EcalTimingCalibProducer
 //
-/**\class EcalTimingCalibProducer EcalTimingCalibProducer.cc CalibCalorimetry/EcalTiming/plugins/EcalTimingCalibProducer.cc
+/** \class EcalTimingCalibProducer EcalTimingCalibProducer.cc CalibCalorimetry/EcalTiming/plugins/EcalTimingCalibProducer.cc
 
  Description: Calculate ecal timing intercalibration
 
@@ -77,7 +77,7 @@ public:
 	virtual void endOfJob();
 private:
 	// ----------member data ---------------------------
-	edm::InputTag _ecalRecHitsEBTAG;
+	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
 	edm::InputTag _ecalRecHitsEETAG;
 
 
