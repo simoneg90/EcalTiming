@@ -17,12 +17,14 @@
 //
 //
 
-#define DEBUG
-#define RAWIDCRY 872415403
+//#define DEBUG
+#define RAWIDCRY 838904321
+//872415403
 
 // system include files
 #include <memory>
 #include <iostream>
+#include <fstream>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -59,6 +61,10 @@
 
 #include "CalibCalorimetry/EcalTiming/interface/EcalTimingEvent.h"
 #include "CalibCalorimetry/EcalTiming/interface/EcalCrystalTimingCalibration.h"
+
+#include "DataFormats/EcalDetId/interface/EBDetId.h"
+#include "DataFormats/EcalDetId/interface/EEDetId.h"
+
 //
 // class declaration
 //
@@ -80,6 +86,7 @@ private:
 	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
 	edm::InputTag _ecalRecHitsEETAG;
 
+	void dumpCalibration(std::string filename);
 
 
 
@@ -159,6 +166,7 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection"))
 {
+	std::cout << _ecalRecHitsEETAG << std::endl;
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
 	// data is being produced
@@ -221,18 +229,20 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// here the getByToken of the rechits
 	edm::Handle<EBRecHitCollection> ebRecHitHandle;
 	//iEvent.getByLabel(_ecalRecHitsEBToken, ebRecHitHandle);
-	iEvent.getByLabel(_ecalRecHitsEETAG, ebRecHitHandle);
+	iEvent.getByLabel(_ecalRecHitsEBTAG, ebRecHitHandle);
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 
 
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
+	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << std::endl;
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
 		// for each recHit create a EcalTimingEvent
 		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), false);
 #ifdef DEBUG
-		if(recHit_itr->detid().rawId() == RAWIDCRY) std::cout << timeEvent << "\t <- " << recHit_itr->timeError() << std::endl;
+		//if(recHit_itr->detid().rawId() == RAWIDCRY)
+		std::cout << "Debug looping over EB recHits: " << recHit_itr->detid().rawId() << "\t" << timeEvent << "\t <- " << recHit_itr->timeError() << std::endl;
 #endif
 		// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 		assert(_timeCalibMap[recHit_itr->detid()].add(timeEvent));
@@ -241,6 +251,10 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// same for EE
 	for(auto recHit_itr = eeRecHitHandle->begin(); recHit_itr != eeRecHitHandle->end(); ++recHit_itr) {
 		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), true);
+#ifdef DEBUG
+		//if(recHit_itr->detid().rawId() == RAWIDCRY)
+		std::cout << "Debug looping over EE recHits: " << recHit_itr->detid().rawId() << "\t" << timeEvent << "\t <- " << recHit_itr->timeError() << std::endl;
+#endif
 		assert(_timeCalibMap[recHit_itr->detid()].add(timeEvent));
 	}
 
@@ -269,8 +283,13 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
 		//_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), -calibRecHit_itr->second.mean());
+		if(calibRecHit_itr->second.num() > 1) {
+			std::cout << "[ERROR]\t" << calibRecHit_itr->first.rawId() << "\t" << calibRecHit_itr->second << std::endl;
+		}
 		float correction =  - calibRecHit_itr->second.mean();
+#ifdef DEBUG
 		if(calibRecHit_itr->first.rawId() == RAWIDCRY) debugCorrection = correction;
+#endif
 		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), (*_calibConstants)[calibRecHit_itr->first.rawId()] + correction);
 		//_calibConstants->setValue(calibRecHit_itr->first.rawId(), *(_calibConstants->find(calibRecHit_itr->first.rawId()))+1);
 		//_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), *(_timeCalibConstants.find(calibRecHit_itr->first.rawId()))+1);
@@ -284,9 +303,13 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 #endif
 
 
+	// save txt
+	char filename[100];
+	sprintf(filename, "dumpConstants-%d.dat", iLoop_);
+	dumpCalibration(filename);
 	// save the xml
 
-	if(iLoop_ > 2) return kStop;
+	if(iLoop_ > 1) return kStop;
 	++iLoop_;
 	return kContinue;
 }
@@ -301,13 +324,34 @@ EcalTimingCalibProducer::endOfJob()
 
 
 
+void EcalTimingCalibProducer::dumpCalibration(std::string filename)
+{
+	std::ofstream fout(filename);
 
+	// loop over the constants
+	// to make more efficient
+#ifdef DEBUG
+	DetId findId(RAWIDCRY);
+	if(findId.subdetId() == EcalBarrel) {
+		EBDetId id(RAWIDCRY);
+		fout << "EB: " << id.ieta() << "\t" << id.iphi() << "\t" << id.zside() << "\t" << _timeCalibConstants.barrelItems()[id.denseIndex()] << "\t" << *_timeCalibConstants.find(RAWIDCRY) << "\t" << id.rawId() << std::endl;
+	} else {
+		EEDetId id(findId);
+		fout << "EE: " << id.ix() << "\t" << id.iy() << "\t" << id.zside() << "\t" << _timeCalibConstants.endcapItems()[id.denseIndex()] << "\t" << *_timeCalibConstants.find(RAWIDCRY) << std::endl;
+	}
+#endif
 
+	for(unsigned int i = 0; i < _timeCalibConstants.barrelItems().size(); ++i) {
+		EBDetId id(EBDetId::detIdFromDenseIndex(i)); // this is a stupid thing that I'm obliged to do due to the stupid structure of the ECAL container
+		fout << id.ieta() << "\t" << id.iphi() << "\t" << 0 << "\t" << _timeCalibConstants.barrelItems()[i] << "\t" << id.rawId() << std::endl;
+	}
 
-
-
-
-
+	for(unsigned int i = 0; i < _timeCalibConstants.endcapItems().size(); ++i) {
+		EEDetId id(EEDetId::detIdFromDenseIndex(i)); // this is a stupid thing that I'm obliged to do due to the stupid structure of the ECAL container
+		fout << id.ix() << "\t" << id.iy() << "\t" << id.zside() << "\t" << _timeCalibConstants.endcapItems()[i] << std::endl;
+	}
+	fout.close();
+}
 
 
 

@@ -47,11 +47,6 @@ process.caloCosmics.remove(process.zdcreco)
 process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
 
 
-#  Producer Of Ntuple
-process.load("CalibCalorimetry.EcalTiming.ecalTimeTree_cfi")
-process.ecalTimeTree.fileName ='EcalTimeTree'
-process.ecalTimeTree.runNum = 144980
-
 # Dump Some event Content
 import FWCore.Modules.printContent_cfi
 process.dumpEv = FWCore.Modules.printContent_cfi.printContent.clone()
@@ -78,7 +73,8 @@ process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
                             #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
   fileNames = cms.untracked.vstring(
-        'file:FE13B243-C0D8-E411-ADAC-02163E011D52.root')
+        #'file:FE13B243-C0D8-E411-ADAC-02163E011D52.root')
+        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
 #        '/store/data/Commissioning2015/Cosmics/RAW/v1/000/239/517/00000/FE13B243-C0D8-E411-ADAC-02163E011D52.root')
 )
 
@@ -101,13 +97,26 @@ process.source = cms.Source("PoolSource",
 #                                           )
 
 
+# Output definition
+process.RECOoutput = cms.OutputModule("PoolOutputModule",
+    splitLevel = cms.untracked.int32(0),
+    eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
+    outputCommands = process.RECOEventContent.outputCommands,
+    fileName = cms.untracked.string('test_RECO.root'),
+    dataset = cms.untracked.PSet(
+        filterName = cms.untracked.string(''),
+        dataTier = cms.untracked.string('RECO')
+    )
+)
+
+
 #     )
 
 ## Dumpevent Event Contents
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
 ### NumBer of events
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1))
 
 
 ### Process Full Path
@@ -118,9 +127,10 @@ process.p = cms.Path( #process.spashesHltFilter
                      + process.caloCosmicOrSplashRECOSequence 
                     )
 
+process.endp = cms.EndPath(process.RECOoutput)
 
 ### Schedule ###
-process.schedule = cms.Schedule(process.p) 
+process.schedule = cms.Schedule(process.p, process.endp) 
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
