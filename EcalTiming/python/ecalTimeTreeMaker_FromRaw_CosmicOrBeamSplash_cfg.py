@@ -22,7 +22,7 @@ process.load('Configuration/StandardSequences/RawToDigi_Data_cff')
 import HLTrigger.HLTfilters.hltHighLevel_cfi
 process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.clone(
     throw = cms.bool(False),
-    HLTPaths = ['HLT_EG20*']
+    HLTPaths = ['HLT_EG20*', 'HLT_SplashEcalSumET', 'HLT_Calibration','HLT_EcalCalibration','HLT_HcalCalibration','HLT_Random','HLT_Physics','HLT_HcalNZS','HLT_SplashEcalSumET','HLTriggerFinalPath' ]
 )
 
 
@@ -43,6 +43,7 @@ process.caloCosmics.remove(process.hcalLocalRecoSequence)
 process.caloCosmics.remove(process.hfreco)
 process.caloCosmics.remove(process.horeco)
 process.caloCosmics.remove(process.zdcreco)
+process.caloCosmics.remove(process.ecalClusters)
 
 process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
 
@@ -64,6 +65,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
+    wantSummary = cms.untracked.bool(True)
 #    SkipEvent = cms.untracked.vstring('ProductNotFound')
 )
 
@@ -116,11 +118,11 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
 ### NumBer of events
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 ### Process Full Path
-process.p = cms.Path( #process.spashesHltFilter    
+process.p = cms.Path( process.spashesHltFilter *
                      #+ process.preScaler 
                       process.digiStep 
                      #+ process.muonSequence 
@@ -136,3 +138,6 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
                             )
+
+processDumpFile = open('processDump.py', 'w')
+print >> processDumpFile, process.dumpPython()

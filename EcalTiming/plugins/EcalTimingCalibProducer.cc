@@ -233,7 +233,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 
-
+	if(!ebRecHitHandle.isValid() && !eeRecHitHandle.isValid()) return kContinue;
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
 	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << std::endl;
@@ -283,9 +283,9 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
 		//_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), -calibRecHit_itr->second.mean());
-		if(calibRecHit_itr->second.num() > 1) {
-			std::cout << "[ERROR]\t" << calibRecHit_itr->first.rawId() << "\t" << calibRecHit_itr->second << std::endl;
-		}
+		// if(calibRecHit_itr->second.num() > 1) {
+		// 	std::cout << "[ERROR]\t" << calibRecHit_itr->first.rawId() << "\t" << calibRecHit_itr->second << std::endl;
+		// }
 		float correction =  - calibRecHit_itr->second.mean();
 #ifdef DEBUG
 		if(calibRecHit_itr->first.rawId() == RAWIDCRY) debugCorrection = correction;
