@@ -20,7 +20,7 @@ private:
 	float _sum; ///< scalar sum of the time of each timingEvent
 	float _sum2; ///< scalar sum of the square of the time of each timingEvent
 	unsigned long int _num; ///< number of timingEvents;
-
+        float _sumE;
 	std::vector<EcalTimingEvent> timingEvents; ///< vector containing  all the events for this crystal
 	std::vector<EcalTimingEvent>::iterator maxChi2Itr;
 
@@ -29,7 +29,7 @@ public:
 	/// default constructor
 	EcalCrystalTimingCalibration(bool weightMean = true) :
 		//_detId(),
-		_sum(0), _sum2(0), _num(0)
+		_sum(0), _sum2(0), _num(0),_sumE(0)
 		//totalChi2(-1),
 		//useWeightedMean(weightMean)
 	{
@@ -47,12 +47,15 @@ public:
 	{
 		float mean_ = mean();
 		return sqrt(_sum2 / _num - mean_ * mean_);
-	}
+	};
 	inline float meanError() const
 	{
 		return stdDev() / sqrt(_num);
 	};
-
+	inline float meanE() const
+	{
+		return _sumE / _num;
+	}; ///< average Energy (mean of the Energy  distribution)
 	/* bool operator<( EcalCrystalTimingCalibration& rhs) */
 	/* { */
 	/* 	if(_detId < rhs._detId) return true; */
