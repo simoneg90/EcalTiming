@@ -121,6 +121,7 @@ private:
 	// ----------member data ---------------------------
 	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
 	edm::InputTag _ecalRecHitsEETAG;
+	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 
 	void dumpCalibration(std::string filename);
 
@@ -185,6 +186,8 @@ private:
 	}
 
 
+	bool addRecHit(const EcalRecHit& recHit);
+
 	std::map<DetId, float>  _CrysEnergyMap;
 
 	edm::Service<TFileService> fileService_;
@@ -223,7 +226,8 @@ private:
 //
 EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfig) :
 	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
-	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection"))
+	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
+	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags"))
 {
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
@@ -278,7 +282,7 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 
 	// Initialize histograms at start of Loop
 	char histDir[100];
-	sprintf(histDir, "EcalSplashTiming-%d", iIteration);
+	sprintf(histDir, "EcalSplashTiming_%d", iIteration);
 	// Make a new directory for Histograms for each loop
 	TFileDirectory HistDirName = fileService_->mkdir( histDir);
 
@@ -289,6 +293,30 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 	//reset Rechitenergy map
 //	_CrysEnergyMap.clear();
 
+}
+
+bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
+{
+	//check if rechit is valid
+	if(! recHit.checkFlags(_recHitFlags)) return false;
+	if( recHit.energy() < 1) return false;
+
+	//       if( !( (*recHit_itr).checkFlag(EcalRecHit::kGood) || (*recHit_itr).checkFlag(EcalRecHit::kOutOfTime) || (*recHit_itr).checkFlag(EcalRecHit::kPoorCalib)) ) continue;
+	// for each recHit create a EcalTimingEvent
+	EcalTimingEvent timeEvent(recHit);
+	if(fabs(timeEvent.time()) > 25) {
+		std::cout << timeEvent << std::endl;
+		return false;
+	}
+#ifdef DEBUG
+	//if(recHit.detid().rawId() == RAWIDCRY)
+	std::cout << "Debug looping over EB recHits: " << recHit.detid().rawId() << "\t" << timeEvent << "\t <- " << recHit.timeError() << std::endl;
+#endif
+	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
+	assert(_timeCalibMap[recHit.detid()].add(timeEvent));
+	// Keep the recHitEventEnergy
+//	      	_CrysEnergyMap.insert( std::pair<DetId, float>(recHit.detid(),recHit.energy() ));
+	return true;
 }
 
 // ------------ called for each event in the loop.  The present event loop can be stopped by return kStop ------------
@@ -307,28 +335,12 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
 	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << std::endl;
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
-		//check if rachit is valid
-//            if( !( (*recHit_itr).checkFlag(EcalRecHit::kGood) || (*recHit_itr).checkFlag(EcalRecHit::kOutOfTime) || (*recHit_itr).checkFlag(EcalRecHit::kPoorCalib)) ) continue;
-		// for each recHit create a EcalTimingEvent
-		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), false);
-#ifdef DEBUG
-		//if(recHit_itr->detid().rawId() == RAWIDCRY)
-		std::cout << "Debug looping over EB recHits: " << recHit_itr->detid().rawId() << "\t" << timeEvent << "\t <- " << recHit_itr->timeError() << std::endl;
-#endif
-		// add the EcalTimingEvent to the EcalCreateTimeCalibrations
-		assert(_timeCalibMap[recHit_itr->detid()].add(timeEvent));
-		// Keep the recHitEventEnergy
-//	      	_CrysEnergyMap.insert( std::pair<DetId, float>(recHit_itr->detid(),recHit_itr->energy() ));
+		addRecHit(*recHit_itr); // add the recHit to the list of recHits used for calibration (with the relative information)
 	}
 
 	// same for EE
 	for(auto recHit_itr = eeRecHitHandle->begin(); recHit_itr != eeRecHitHandle->end(); ++recHit_itr) {
-		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), true);
-#ifdef DEBUG
-		//if(recHit_itr->detid().rawId() == RAWIDCRY)
-		std::cout << "Debug looping over EE recHits: " << recHit_itr->detid().rawId() << "\t" << timeEvent << "\t <- " << recHit_itr->timeError() << std::endl;
-#endif
-		assert(_timeCalibMap[recHit_itr->detid()].add(timeEvent));
+		addRecHit(*recHit_itr);
 	}
 
 

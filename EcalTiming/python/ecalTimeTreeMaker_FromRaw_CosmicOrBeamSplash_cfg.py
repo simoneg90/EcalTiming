@@ -61,7 +61,7 @@ process.MessageLogger = cms.Service("MessageLogger",
     destinations = cms.untracked.vstring('cout')
 )
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
+#process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
@@ -140,6 +140,7 @@ process.schedule = cms.Schedule(process.p, process.endp)
 process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
+                            recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
                             )
 
 processDumpFile = open('processDump.py', 'w')

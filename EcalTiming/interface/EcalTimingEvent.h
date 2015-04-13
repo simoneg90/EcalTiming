@@ -9,41 +9,38 @@
  * Description: basic timing information
  */
 
-class EcalTimingEvent //: EcalRecHit
+class EcalTimingEvent : public EcalRecHit
 {
 public:
-	float _energy;
-	float _time;
-	float _chi2;
-	float _sigmaTime;
-	float _expectedPrecision;
 
+	///copy constructor
+	EcalTimingEvent(const EcalRecHit& rec): EcalRecHit(rec) {};
 
-	EcalTimingEvent (float time_, float sigmaTime_, float energy_, bool ee) :
-		_energy (energy_),
-		_time (time_),
-		_chi2 (-1),
-		_sigmaTime (sigmaTime_)
-	{
-		if (ee) {
-			_expectedPrecision = 33 / (_energy / 2.0);
-		} else {
-			_expectedPrecision = 33 / (_energy / 1.2);
-		}
-	}
-
+	/* EcalRecHit(rec.detid(), rec.energy(), rec.time(), 0, 0){ */
+	/* 		setChi2(rec.chi2()); */
+	/* 		setEnergyError(rec.energyError()); */
+	/* 		uint32_t timeErrorBits = getMasked(extra_, 24, 8); */
+	/* 		extra_ = setMasked(rec.extra_, timeErrBits & 0xFF, 24, 8); */
 	friend ostream& operator << (ostream& os, const EcalTimingEvent& event)
 	{
-		os << event._time << "\t" << event._sigmaTime << "\t" << event._energy;
+		if(event.detid().subdetId() == EcalBarrel) {
+			EBDetId id(event.detid());
+			os  << id.ieta() << "\t" << id.iphi() << "\t" << id.zside() << "\t";
+		} else {
+			EEDetId id(event.detid());
+			os << id.ix() << "\t" << id.iy() << "\t" << id.zside() << "\t";
+		}
+
+		os << event.time() << "\t" << event.timeError() << "\t" << event.energy();
 		return os;
 	}
 
 	bool operator== (const EcalTimingEvent &first) const
 	{
 		// only check amp, time, sigmaT
-		if (first._energy == this->_energy &&
-		        first._time == this->_time &&
-		        first._sigmaTime == this->_sigmaTime) {
+		if (first.energy() == this->energy() &&
+		        first.time() == this->time() &&
+		        first.timeError() == this->timeError()) {
 			return true;
 		}
 

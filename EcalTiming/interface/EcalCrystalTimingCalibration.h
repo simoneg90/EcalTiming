@@ -66,38 +66,6 @@ public:
 	//float totalChi2;
 
 
-	/* EcalCrystalTimingCalibration(float m, float me, float r, float tc, std::vector<EcalTimingEvent> te) : */
-	/* 	mean(m), */
-	/* 	meanE(me), */
-	/* 	rms(r), */
-	/* 	totalChi2(tc) */
-	/* { */
-	/* 	timingEvents = te; */
-	/* } */
-
-	/* EcalCrystalTimingCalibration(float m, float me, float r, float tc, std::vector<EcalTimingEvent> te, bool wm) : */
-	/* 	mean(m), */
-	/* 	meanE(me), */
-	/* 	rms(r), */
-	/* 	totalChi2(tc), */
-	/* 	useWeightedMean(wm) */
-	/* { */
-	/* 	timingEvents = te; */
-	/* } */
-
-	/* bool insertEvent(float amp, float t, float sigmaT, bool ee) */
-	/* { */
-	/* 	if(sigmaT > 0) // throw away events with zero or negative errors */
-	/* 	{ */
-	/* 		timingEvents.push_back(EcalTimingEvent(amp, t, sigmaT, ee)); */
-	/* 		updateChi2(); */
-	/* 		return true; */
-	/* 	} */
-	/* 	else { */
-	/* 		return false; */
-	/* 	} */
-	/* } */
-
 	friend ostream& operator<< (ostream& os, const EcalCrystalTimingCalibration& s)
 	{
 		os << s.mean() << "\t" << s.stdDev() << "\t" << s.num();
@@ -113,9 +81,9 @@ private:
 	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_)
 	{
-		if(true || te_._sigmaTime > 0) {
-			_sum += te_._time;
-			_sum2 += te_._time * te_._time;
+		if(true || te_.timeError() > 0) {
+			_sum += te_.time();
+			_sum2 += te_.time() * te_.time();
 			_num++;
 			timingEvents.push_back(te_);
 			//updateChi2();
