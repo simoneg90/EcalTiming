@@ -26,6 +26,10 @@
 #include <iostream>
 #include <fstream>
 
+// Make Histograms the way!!
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDConsumerBase.h"
@@ -65,13 +69,45 @@
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
 
+#include "TProfile.h"
+#include "TProfile2D.h"
+#include "TGraphErrors.h"
+#include "TGraph.h"
+#include "TH1F.h"
+#include "TH3F.h"
+#include "TH2F.h"
+
+#include <string>
+#include <vector>
+#include <iostream>
+#include <map>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <set>
+#include <assert.h>
+
+#include <TMath.h>
+#include <Math/VectorUtil.h>
+#include <boost/tokenizer.hpp>
+
+
 //
 // class declaration
 //
 
+using namespace std;
+using namespace edm;
+using namespace cms;
+
 class EcalTimingCalibProducer : public edm::ESProducerLooper
 {
+
 public:
+	// Map of detId and Crystal time
+	typedef std::map<DetId, EcalCrystalTimingCalibration> EcalTimeCalibrationMap;
+	EcalTimeCalibrationMap _timeCalibMap;
+
 	EcalTimingCalibProducer(const edm::ParameterSet&);
 	~EcalTimingCalibProducer();
 
@@ -88,7 +124,10 @@ private:
 
 	void dumpCalibration(std::string filename);
 
-
+// plotting
+///fill histograms with the measured shifts (that will become -corrections for the next step)
+	void FillCalibrationCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
+	void initHists(TFileDirectory dir);
 
 	// Create calibration container objects -> to be used in beginOfJob
 	void createConstants(const edm::EventSetup& iSetup)
@@ -145,9 +184,29 @@ private:
 		return _offsetConstant;
 	}
 
-	typedef std::map<DetId, EcalCrystalTimingCalibration> EcalTimeCalibrationMap;
-	EcalTimeCalibrationMap _timeCalibMap;
 
+	std::map<DetId, float>  _CrysEnergyMap;
+
+	edm::Service<TFileService> fileService_;
+	// Histograms
+	TProfile2D* EneProfileMapEEP_;
+	TProfile2D* EneProfileMapEEM_;
+	//TH2F* EneMapEEP_;
+	//TH2F* EneMapEEM_;
+	TProfile2D* TimeProfileMapEEP_;
+	TProfile2D* TimeProfileMapEEM_;
+	//TH2F* TimeMapEEP_;
+	//TH2F* TimeMapEEM_;
+	TProfile2D* EneProfileMapEB_;
+	//TH2F* EneMapEB_;
+	TProfile2D* TimeProfileMapEB_;
+	//TH2F* TimeMapEB_;
+	TH1F* RechitEneEB_;
+	TH1F* RechitTimeEB_;
+	TH1F* RechitEneEEM_;
+	TH1F* RechitTimeEEM_;
+	TH1F* RechitEneEEP_;
+	TH1F* RechitTimeEEP_;
 };
 
 
@@ -166,7 +225,6 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection"))
 {
-	std::cout << _ecalRecHitsEETAG << std::endl;
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
 	// data is being produced
@@ -218,8 +276,19 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 	          << std::endl;
 #endif
 
+	// Initialize histograms at start of Loop
+	char histDir[100];
+	sprintf(histDir, "EcalSplashTiming-%d", iIteration);
+	// Make a new directory for Histograms for each loop
+	TFileDirectory HistDirName = fileService_->mkdir( histDir);
+
+	initHists(HistDirName);
 	// reset the calibration
+
 	_timeCalibMap.clear();
+	//reset Rechitenergy map
+//	_CrysEnergyMap.clear();
+
 }
 
 // ------------ called for each event in the loop.  The present event loop can be stopped by return kStop ------------
@@ -233,11 +302,13 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 
-	if(!ebRecHitHandle.isValid() && !eeRecHitHandle.isValid()) return kContinue;
+
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
 	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << std::endl;
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
+		//check if rachit is valid
+//            if( !( (*recHit_itr).checkFlag(EcalRecHit::kGood) || (*recHit_itr).checkFlag(EcalRecHit::kOutOfTime) || (*recHit_itr).checkFlag(EcalRecHit::kPoorCalib)) ) continue;
 		// for each recHit create a EcalTimingEvent
 		EcalTimingEvent timeEvent(recHit_itr->time(), recHit_itr->timeError(), recHit_itr->energy(), false);
 #ifdef DEBUG
@@ -246,6 +317,8 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 #endif
 		// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 		assert(_timeCalibMap[recHit_itr->detid()].add(timeEvent));
+		// Keep the recHitEventEnergy
+//	      	_CrysEnergyMap.insert( std::pair<DetId, float>(recHit_itr->detid(),recHit_itr->energy() ));
 	}
 
 	// same for EE
@@ -282,10 +355,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
-		//_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), -calibRecHit_itr->second.mean());
-		// if(calibRecHit_itr->second.num() > 1) {
-		// 	std::cout << "[ERROR]\t" << calibRecHit_itr->first.rawId() << "\t" << calibRecHit_itr->second << std::endl;
-		// }
+		FillCalibrationCorrectionHists(calibRecHit_itr); // histograms with shifts to be corrected at each step
 		float correction =  - calibRecHit_itr->second.mean();
 #ifdef DEBUG
 		if(calibRecHit_itr->first.rawId() == RAWIDCRY) debugCorrection = correction;
@@ -293,6 +363,8 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), (*_calibConstants)[calibRecHit_itr->first.rawId()] + correction);
 		//_calibConstants->setValue(calibRecHit_itr->first.rawId(), *(_calibConstants->find(calibRecHit_itr->first.rawId()))+1);
 		//_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), *(_timeCalibConstants.find(calibRecHit_itr->first.rawId()))+1);
+
+		// add filing Energy hists here
 	}
 
 #ifdef DEBUG
@@ -302,11 +374,11 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 	          << std::endl;
 #endif
 
-
 	// save txt
 	char filename[100];
-	sprintf(filename, "dumpConstants-%d.dat", iLoop_);
+	sprintf(filename, "dumpConstants-%d.dat", iLoop_); //text file holding constants
 	dumpCalibration(filename);
+
 	// save the xml
 
 	if(iLoop_ > 1) return kStop;
@@ -319,10 +391,6 @@ void
 EcalTimingCalibProducer::endOfJob()
 {
 }
-
-
-
-
 
 void EcalTimingCalibProducer::dumpCalibration(std::string filename)
 {
@@ -355,18 +423,61 @@ void EcalTimingCalibProducer::dumpCalibration(std::string filename)
 
 
 
+// FillHistograms
+
+void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr)
+{
+	if(cal_itr->first.subdetId() == EcalBarrel) {
+		EBDetId id(cal_itr->first);
+		// Fill Rechit Energy
+		EneProfileMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.meanE()); // 2D energy map
+		RechitEneEB_->Fill(cal_itr->second.meanE());   // 1D histogram
+		TimeProfileMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.mean()); // 2D time map
+		RechitTimeEB_->Fill(cal_itr->second.mean()); // 1D histogram
+	} else {
+		// create EEDetId
+		EEDetId id(cal_itr->first);
+		if(id.zside() < 0) {
+			EneProfileMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.meanE());
+			RechitEneEEM_->Fill(cal_itr->second.meanE());
+			TimeProfileMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.mean());
+			RechitTimeEEM_->Fill(cal_itr->second.mean());
+		} else {
+			TimeProfileMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.mean());
+			RechitTimeEEP_->Fill(cal_itr->second.mean());
+			EneProfileMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.meanE());
+			RechitEneEEP_->Fill(cal_itr->second.meanE());
+		}
+	}
+
+}
 
 
+//
+void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
+{
+	EneProfileMapEB_ = fdir.make<TProfile2D>("EneProfileMapEB_", "RecHit Energy[GeV] EB profile map;i#eta; i#phi;E[GeV]", 171, -85, 86, 360, 1., 361.);
+	//EneMapEB_ = fdir.make<TH2F>("EneMapEB_","RecHit Energy  map [GeV]; i#phi; i#eta;E[GeV]",360,1.,361.,171,-85,86);
+	TimeProfileMapEB_ = fdir.make<TProfile2D>("TimeProfileMapEB_", "Mean Time [ns] EB profile map; i#eta; i#phi;Time[ns]", 171, -85, 86, 360, 1., 361.);
+	//TimeMapEB_ = fdir.make<TH2F>("TimeMapEB_","Mean Time map [ns]; i#phi; i#eta;E[ns]",360,1.,361.,171,-85,86);
 
+	EneProfileMapEEP_ = fdir.make<TProfile2D>("EneProfileMapEEP_", "RecHit Energy[GeV] profile map EE+;ix;iy;E[GeV]", 100, 1, 101, 100, 1, 101);
+	//EneMapEEP_ = fdir.make<TH2F>("EneMapEEP_","RecHit Energy  EE+[GeV];ix;iy;E[GeV]",100,1,101,100,1,101);
+	TimeProfileMapEEP_ = fdir.make<TProfile2D>("TimeProfileMapEEP_", "Mean Time[ns] profile map EE+;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
+	//TimeMapEEP_ = fdir.make<TH2F>("TimeMapEEP_","Mean Time EE+[ns];ix;iy; Time[ns]",100,1,101,100,1,101);
+	EneProfileMapEEM_ = fdir.make<TProfile2D>("EneProfileMapEEM_", "RecHit Energy[GeV] profile map EE-;ix;iy;E[GeV]", 100, 1, 101, 100, 1, 101);
+	TimeProfileMapEEM_ = fdir.make<TProfile2D>("TimeProfileMapEEM_", "Mean Time[ns] profile map EE-;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
+	//TimeMapEEM_ = fdir.make<TH2F>("TimeMapEEM_","Mean Time EE-[ns];ix;iy; Time[ns]",100,1,101,100,1,101);
 
+	RechitTimeEEM_ = fdir.make<TH1F>("RechitTimeEEM_", "RecHit Mean Time[ns] EE-;RecHit Time[ns]; Events", 200, -50.0, 50.0);
+	RechitTimeEEP_ = fdir.make<TH1F>("RechitTimeEEP_", "RecHit Mean Time[ns] EE+;RecHit Time[ns]; Events", 200, -50.0, 50.0);
+	RechitTimeEB_ = fdir.make<TH1F>("RechitTimeEB_", "RecHit Mean Time[ns] EB;RecHit Time[ns]; Events", 200, -50.0, 50.0);
 
+	RechitEneEEM_ = fdir.make<TH1F>("RechitEneEEM_", "RecHit Energy[GeV] EE-;Rechit Energy[GeV]; Events", 200, 0.0, 100.0);
+	RechitEneEEP_ = fdir.make<TH1F>("RechitEneEEP_", "RecHit Energy[GeV] EE+;Rechit Energy[GeV]; Events", 200, 0.0, 100.0);
+	RechitEneEB_ = fdir.make<TH1F>("RechitEneEB_", "RecHit Energy[GeV] EB;Rechit Energy[GeV]; Events", 200, 0.0, 100.0);
 
-
-
-
-
-
-
+}
 
 //define this as a plug-in
 DEFINE_FWK_LOOPER(EcalTimingCalibProducer);

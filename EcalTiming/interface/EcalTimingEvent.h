@@ -2,13 +2,14 @@
 #define ecaltimingevent_hh
 
 #include <iostream>
+#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
 
 /** \class EcalTimingEvent EcalTiming.cc EcalTiming.cc
  *
  * Description: basic timing information
  */
 
-class EcalTimingEvent
+class EcalTimingEvent //: EcalRecHit
 {
 public:
 	float _energy;
@@ -17,14 +18,6 @@ public:
 	float _sigmaTime;
 	float _expectedPrecision;
 
-	/* EcalTimingEvent() : */
-	/* 	energy(-1), */
-	/* 	time(-1), */
-	/* 	chi2(-1), */
-	/* 	sigmaTime(-1), */
-	/* 	expectedPrecision(-1) */
-	/* { */
-	/* } */
 
 	EcalTimingEvent (float time_, float sigmaTime_, float energy_, bool ee) :
 		_energy (energy_),

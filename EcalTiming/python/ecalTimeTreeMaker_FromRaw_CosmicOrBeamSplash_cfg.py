@@ -75,9 +75,8 @@ process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
                             #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
   fileNames = cms.untracked.vstring(
-        #'file:FE13B243-C0D8-E411-ADAC-02163E011D52.root')
-        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
-#        '/store/data/Commissioning2015/Cosmics/RAW/v1/000/239/517/00000/FE13B243-C0D8-E411-ADAC-02163E011D52.root')
+#        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
+         '/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
 )
 
 # process.source = cms.Source(
@@ -112,7 +111,11 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 )
 
 
-#     )
+## Histogram files
+process.TFileService = cms.Service("TFileService",
+                                   fileName = cms.string("ecalCreateTimeCalibs.root"),
+                                   closeFileFast = cms.untracked.bool(True)
+                                   )
 
 ## Dumpevent Event Contents
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
