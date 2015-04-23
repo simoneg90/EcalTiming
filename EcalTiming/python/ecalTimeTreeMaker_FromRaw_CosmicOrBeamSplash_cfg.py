@@ -141,6 +141,7 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
                             recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
+                            recHitMinimumN = cms.uint32(50000),
                             )
 
 processDumpFile = open('processDump.py', 'w')

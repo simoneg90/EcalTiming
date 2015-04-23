@@ -49,6 +49,11 @@
 #include "FWCore/Framework/interface/Event.h"
 // input collections
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
+//RingTools
+#include "Calibration/Tools/interface/EcalRingCalibrationTools.h"
+#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
 
 // record to be produced:
 #include "CondFormats/DataRecord/interface/EcalTimeCalibConstantsRcd.h"
@@ -108,10 +113,15 @@ public:
 	typedef std::map<DetId, EcalCrystalTimingCalibration> EcalTimeCalibrationMap;
 	EcalTimeCalibrationMap _timeCalibMap;
 
+	typedef std::map<DetId, EcalTimingEvent> EventTimeMap;
+	EventTimeMap eventTimeMap_;
+
 	// For finding averages for specific eta ring
 	EcalCrystalTimingCalibration timeEEP; //
 	EcalCrystalTimingCalibration timeEEM;
 	EcalCrystalTimingCalibration timeEB;
+	float nearEndcapTime;
+	float farEndcapTime;
 
 	EcalTimingCalibProducer(const edm::ParameterSet&);
 	~EcalTimingCalibProducer();
@@ -127,6 +137,7 @@ private:
 	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
 	edm::InputTag _ecalRecHitsEETAG;
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
+	unsigned int _recHitMin;
 
 	void dumpCalibration(std::string filename);
 
@@ -192,9 +203,18 @@ private:
 	}
 
 
+	/// Checks whether or not we care about this recHit and then adds it to the corresponding collecionts
 	bool addRecHit(const EcalRecHit& recHit);
-	void plotRecHit(const EcalRecHit& recHit);
+	/// Adds the recHit to the per Event histograms
+	void plotRecHit(const EcalTimingEvent& recHit);
+	///
+	/// Returns an EcalTimingEvent with a new time, which has been adjusted
+	/// so that the upstream endcap is 0. 
+	///
+	EcalTimingEvent correctGlobalOffset(const EcalTimingEvent& ev);
 
+	/// Set nearEndcapTime based on timeEEM/timeEEB
+	void calcGlobalOffset();
 	std::map<DetId, float>  _CrysEnergyMap;
 
 	edm::Service<TFileService> fileService_;
@@ -228,6 +248,10 @@ private:
 	TH1F* RechitTimeEEM_;
 	TH1F* RechitEneEEP_;
 	TH1F* RechitTimeEEP_;
+
+	EcalRingCalibrationTools _ringTools;
+	const CaloSubdetectorGeometry * endcapGeometry_;
+	const CaloSubdetectorGeometry * barrelGeometry_;
 };
 
 
@@ -245,7 +269,9 @@ private:
 EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfig) :
 	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
-	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags"))
+	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
+	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
+	_ringTools(EcalRingCalibrationTools())
 {
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
@@ -284,6 +310,14 @@ void EcalTimingCalibProducer::beginOfJob(const edm::EventSetup& iSetup)
 {
 	std::cout << "Begin job: createConstants" << std::endl;
 	createConstants(iSetup);
+
+	//Get Geometry for Rings
+	edm::ESHandle<CaloGeometry> pG;
+	iSetup.get<CaloGeometryRecord>().get(pG);
+	EcalRingCalibrationTools::setCaloGeometry(&(*pG));
+	endcapGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
+	barrelGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
+
 }
 
 // ------------ method called at the beginning of a new loop over the event  ------------
@@ -319,24 +353,32 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 	if(! recHit.checkFlags(_recHitFlags)) return false;
 	if( recHit.energy() < 1) return false;
 
-	//       if( !( (*recHit_itr).checkFlag(EcalRecHit::kGood) || (*recHit_itr).checkFlag(EcalRecHit::kOutOfTime) || (*recHit_itr).checkFlag(EcalRecHit::kPoorCalib)) ) continue;
-	// for each recHit create a EcalTimingEvent
-	EcalTimingEvent timeEvent(recHit);
-	if(fabs(timeEvent.time()) > 25) {
-		std::cout << timeEvent << std::endl;
-	}
-#ifdef DEBUG
-	//if(recHit.detid().rawId() == RAWIDCRY)
-	std::cout << "Debug looping over EB recHits: " << recHit.detid().rawId() << "\t" << timeEvent << "\t <- " << recHit.timeError() << std::endl;
-#endif
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
-	assert(_timeCalibMap[recHit.detid()].add(timeEvent));
+	EcalTimingEvent timeEvent(recHit);
+	eventTimeMap_.emplace(recHit.detid(),timeEvent);
+	
+	//Add the Time event to the Eta Ring Sums
+	if(recHit.detid().subdetId() == EcalBarrel) {
+		EBDetId id(recHit.detid());
+		if(id.ieta() == 1) timeEB.add(timeEvent);
+	} else {
+		// create EEDetId
+		EEDetId id(recHit.detid());
+		if(EcalRingCalibrationTools::getRingIndex(id) == 20 + EcalRingCalibrationTools::N_RING_BARREL ||
+				EcalRingCalibrationTools::getRingIndex(id) == 20 + EcalRingCalibrationTools::N_RING_BARREL + EcalRingCalibrationTools::N_RING_ENDCAP/2) {
+			if(id.zside() < 0) {
+				timeEEM.add(timeEvent);
+			} else {
+				timeEEP.add(timeEvent);
+			}
+		}
+	}
 	// Keep the recHitEventEnergy
 //	      	_CrysEnergyMap.insert( std::pair<DetId, float>(recHit.detid(),recHit.energy() ));
 	return true;
 }
 
-void EcalTimingCalibProducer::plotRecHit(const EcalRecHit& recHit)
+void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 {
 	if(recHit.detid().subdetId() == EcalBarrel) {
 		EBDetId id(recHit.detid());
@@ -356,6 +398,26 @@ void EcalTimingCalibProducer::plotRecHit(const EcalRecHit& recHit)
 	}
 }
 
+EcalTimingEvent EcalTimingCalibProducer::correctGlobalOffset(const EcalTimingEvent& te)
+{
+	EcalTimingEvent ret(EcalRecHit(te.detid(), te.energy(), te.time() - timeEEM.mean()));
+	return ret;
+}
+
+void EcalTimingCalibProducer::calcGlobalOffset()
+{
+	if(timeEEP.mean() > timeEEM.mean())
+	{
+		nearEndcapTime = timeEEM.mean();
+		farEndcapTime  = timeEEP.mean();
+	}
+	else
+	{
+		nearEndcapTime = timeEEP.mean();
+		farEndcapTime  = timeEEM.mean();
+	}
+}
+
 // ------------ called for each event in the loop.  The present event loop can be stopped by return kStop ------------
 EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
@@ -367,30 +429,50 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 
+	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << "\t" << eeRecHitHandle->size() << std::endl;
 
-	char eventDirName[100];
-	sprintf(eventDirName, "Event_%d", int(iEvent.id().event()) );
-	// Make a new directory for Histograms for each event
-	TFileDirectory eventDir = histDir_.mkdir( eventDirName);
-	initEventHists(eventDir);
-
+   
+	eventTimeMap_.clear();
+	
+	timeEB  = EcalCrystalTimingCalibration();
+	timeEEM = EcalCrystalTimingCalibration();
+	timeEEP = EcalCrystalTimingCalibration();
+    
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
-	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << std::endl;
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
-		if(addRecHit(*recHit_itr)) { // add the recHit to the list of recHits used for calibration (with the relative information)
-			plotRecHit(*recHit_itr);
-		}
+		addRecHit(*recHit_itr); // add the recHit to the list of recHits used for calibration (with the relative information)
 	}
 
 	// same for EE
 	for(auto recHit_itr = eeRecHitHandle->begin(); recHit_itr != eeRecHitHandle->end(); ++recHit_itr) {
-		if(addRecHit(*recHit_itr)) {// add the recHit to the list of recHits used for calibration (with the relative information)
-			plotRecHit(*recHit_itr);
-		}
+		addRecHit(*recHit_itr); // add the recHit to the list of recHits used for calibration (with the relative information)
 	}
 
+	// If we got less than the minimum recHits, continue
+	if(eventTimeMap_.size() < _recHitMin) return kContinue;
 
+	
+	// Make a new directory for Histograms for each event
+	char eventDirName[100];
+	sprintf(eventDirName, "Event_%d", int(iEvent.id().event()) );
+	TFileDirectory eventDir = histDir_.mkdir( eventDirName);
+	initEventHists(eventDir);
+
+	// Add adjusted timeEvents to CorrectionsMap
+	calcGlobalOffset();
+	for(auto const & it : eventTimeMap_)
+	{
+		EcalTimingEvent corr = correctGlobalOffset(it.second);
+		plotRecHit(corr);
+		_timeCalibMap[it.first].add(corr);
+	}
+
+#ifdef DEBUG
+	std::cout << "Average Time EB: " <<  timeEB << std::endl;
+	std::cout << "Average Time EEM: " << timeEEM << std::endl;
+	std::cout << "Average Time EEP: " << timeEEP << std::endl;
+#endif
 
 	// any etaRing check?
 	// any etaRing inter-calibration?
