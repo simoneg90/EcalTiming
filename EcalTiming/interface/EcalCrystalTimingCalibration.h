@@ -84,6 +84,7 @@ private:
 		if(true || te_.timeError() > 0) {
 			_sum += te_.time();
 			_sum2 += te_.time() * te_.time();
+			_sumE += te_.energy();
 			_num++;
 			timingEvents.push_back(te_);
 			//updateChi2();
