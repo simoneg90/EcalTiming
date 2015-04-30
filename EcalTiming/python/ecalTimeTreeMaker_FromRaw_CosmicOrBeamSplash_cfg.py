@@ -76,7 +76,9 @@ process.source = cms.Source("PoolSource",
                             #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
   fileNames = cms.untracked.vstring(
 #        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
-         '/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
+         #'/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
+         '/store/caf/user/ccecal/TPG/splash_events_run_239895_26_events_beam_1.root',
+         '/store/caf/user/ccecal/TPG/splash_events_run_239895_31_events_beam_2.root'),
 )
 
 # process.source = cms.Source(

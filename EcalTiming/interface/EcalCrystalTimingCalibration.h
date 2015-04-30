@@ -77,6 +77,15 @@ public:
 	{
 		return insertEvent(te_);
 	}
+	inline void clear()
+	{
+	_sum = 0.0f;
+	_sum2 = 0.0f;
+	_num = 0;
+	_sumE = 0.0f;
+
+	timingEvents.clear();
+	}
 private:
 	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_)
