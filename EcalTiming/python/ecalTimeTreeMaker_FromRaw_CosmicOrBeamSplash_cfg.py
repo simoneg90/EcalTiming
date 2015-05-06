@@ -61,7 +61,7 @@ process.MessageLogger = cms.Service("MessageLogger",
     destinations = cms.untracked.vstring('cout')
 )
 process.load("FWCore.MessageService.MessageLogger_cfi")
-#process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
@@ -76,7 +76,9 @@ process.source = cms.Source("PoolSource",
                             #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
   fileNames = cms.untracked.vstring(
 #        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
-         '/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
+#         '/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
+        '/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/479/00000/AE12BB31-0AF3-E411-977C-02163E0139CE.root'),
+#        '/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/484/00000/6CF7FB5C-1EF3-E411-BD0E-02163E01390C.root'),
 )
 
 # process.source = cms.Source(
@@ -113,7 +115,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 ## Histogram files
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("ecalCreateTimeCalibs.root"),
+                                   fileName = cms.string("/afs/cern.ch/user/s/shervin/public/4Carlotta/ecalCreateTimeCalibs-243479-v1.root"),
                                    closeFileFast = cms.untracked.bool(True)
                                    )
 
@@ -125,7 +127,7 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 ### Process Full Path
-process.p = cms.Path( process.spashesHltFilter *
+process.p = cms.Path( #process.spashesHltFilter *
                      #+ process.preScaler 
                       process.digiStep 
                      #+ process.muonSequence 
@@ -138,10 +140,14 @@ process.endp = cms.EndPath(process.RECOoutput)
 process.schedule = cms.Schedule(process.p, process.endp) 
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
+                            maxLoop = cms.uint32(1),
+                            isSplash = cms.bool(True),
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
                             recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
-                            recHitMinimumN = cms.uint32(50000),
+                            #recHitMinimumN = cms.uint32(50000),
+                            recHitMinimumN = cms.uint32(2),
+                            minRecHitEnergy = cms.double(2),
                             )
 
 processDumpFile = open('processDump.py', 'w')
