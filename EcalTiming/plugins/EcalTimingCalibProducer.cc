@@ -19,10 +19,10 @@
 
 //#define DEBUG
 #define RAWIDCRY 838904321
-#define ZERORINGINDEX 20
 #define EBRING 1
 #define EEmRING 20
 #define EEpRING 20
+#define SPEEDOFLIGHT 30.0
 //872415403
 
 // system include files
@@ -142,6 +142,8 @@ private:
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 	unsigned int _recHitMin;
 
+	bool _isSplash;
+
 	void dumpCalibration(std::string filename);
 
 // plotting
@@ -214,7 +216,7 @@ private:
 	/// Returns an EcalTimingEvent with a new time, which has been adjusted
 	/// so that the upstream endcap is 0. 
 	///
-	EcalTimingEvent correctGlobalOffset(const EcalTimingEvent& ev);
+	EcalTimingEvent correctGlobalOffset(const EcalTimingEvent& ev, int splashDir, float bunchCorr);
 
 	std::map<DetId, float>  _CrysEnergyMap;
 
@@ -273,6 +275,7 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
+	_isSplash(iConfig.getParameter<bool>("isSplash")),
 	_ringTools(EcalRingCalibrationTools())
 {
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
@@ -400,15 +403,22 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 	}
 }
 
-EcalTimingEvent EcalTimingCalibProducer::correctGlobalOffset(const EcalTimingEvent& te)
+EcalTimingEvent EcalTimingCalibProducer::correctGlobalOffset(const EcalTimingEvent& te, int splashDir, float bunchCorr)
 {
-	float time = 0;
-	
-	if (timeEEP.mean() > timeEEM.mean()) // Spash Dir 
-		time = te.time() - timeEEM.mean();
-	else
-		time = timeEEM.mean() - te.time();
-	EcalTimingEvent ret(EcalRecHit(te.detid(), te.energy(), time ));
+	DetId id = te.detid();
+
+	const CaloSubdetectorGeometry * geom;
+	if(id.subdetId() == EcalBarrel) geom = barrelGeometry_;
+	else geom = endcapGeometry_;
+
+	float z = geom->getGeometry(id)->getPosition().z();
+	float mag = geom->getGeometry(id)->getPosition().mag();
+
+	float time = te.time() - (splashDir * z - mag)/SPEEDOFLIGHT; // Adjust time by difference in time of flight for halo/splash
+
+	time += bunchCorr;
+
+	EcalTimingEvent ret(EcalRecHit(id, te.energy(), time ));
 	return ret;
 }
 
@@ -450,21 +460,27 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// Make a new directory for Histograms for each event
 	char eventDirName[100];
 	sprintf(eventDirName, "Event_%d", int(iEvent.id().event()) );
-	TFileDirectory eventDir = histDir_.mkdir( eventDirName);
+	TFileDirectory eventDir = histDir_.mkdir(eventDirName);
 	initEventHists(eventDir);
+
+	int splashDir = int(timeEEP.mean() > timeEEM.mean())*2 - 1; // 1 for beam 1, -1 for beam 2
+	float bunchCorr = 0.0f;
+	if( TMath::Max(timeEEP.mean(),timeEEM.mean()) > 10.0) 
+			bunchCorr = -25.0f;
 
 	// Add adjusted timeEvents to CorrectionsMap
 	for(auto const & it : eventTimeMap_)
 	{
-		EcalTimingEvent corr = correctGlobalOffset(it.second);
-		plotRecHit(corr);
-		_timeCalibMap[it.first].add(corr);
+		EcalTimingEvent event = it.second;
+		if(_isSplash) event = correctGlobalOffset(event, splashDir, bunchCorr);
+		plotRecHit(event);
+		_timeCalibMap[it.first].add(event);
 	}
 
 #ifdef DEBUG
-	std::cout << "Average Time EB: " <<  timeEB << std::endl;
-	std::cout << "Average Time EEM: " << timeEEM << std::endl;
-	std::cout << "Average Time EEP: " << timeEEP << std::endl;
+	std::cout << eventDirName << "\t" <<  timeEB;
+	std::cout << "\t" << timeEEM;
+	std::cout << "\t" << timeEEP << std::endl;
 #endif
 
 	// any etaRing check?
