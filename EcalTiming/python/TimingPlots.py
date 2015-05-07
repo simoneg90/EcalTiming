@@ -16,38 +16,29 @@ def saveEventTimingPlots(eventdir):
 			}
 
 	text = {}
-	for hist_name in ["EB","EEP","EEM"]:
-		timehist[hist_name + "_zoom"] = timehist[hist_name].Clone()
-		timehist[hist_name + "_zoom"].GetZaxis().SetRangeUser(-25,25)
-
 
 	c = ROOT.TCanvas("c"+eventName, "c"+eventName, 1500,1100)
-	c.Divide(3,3)
+	c.Divide(3,2)
 	iPad = 0
 
 	
 	t = ROOT.TText(0,0,"")
 	t.Draw()
 	t.SetTextSize(.1)
-	for hist_name in ["EB","EEP","EEM"]:
+	for hist_name in ["EEM","EB","EEP"]:
 		h = timehist[hist_name]
 		h_oot = timehist[hist_name + "_OOT"]
 
 		iPad += 1
 		c.cd(iPad)
-		h.GetZaxis().SetRangeUser(-3,3)
 		h.Draw("colz")
 		t.DrawTextNDC(0,0,eventName + ' ' + hist_name)
 
-		iPad += 1
-		c.cd(iPad)
-		timehist[hist_name + "_zoom"] = h.Clone()
-		timehist[hist_name + "_zoom"].GetZaxis().SetRangeUser(-25,25)
-		timehist[hist_name + "_zoom"].Draw("colz")
-
-		iPad += 1
-		c.cd(iPad)
+		c.cd(iPad+3)
+		h_oot.GetZaxis().SetRangeUser(-100,100)
 		h_oot.Draw("colz")
+
+	print eventName, [timehist[name].Integral()/timehist[name].GetEntries() for name in ["EEM","EB","EEP"]]
 
 	c.SaveAs("plots/" + eventName+".pdf")
 	c.SaveAs("plots/" + eventName+".png")
