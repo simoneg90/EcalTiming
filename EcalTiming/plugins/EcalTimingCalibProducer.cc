@@ -22,7 +22,7 @@
 #define EBRING 1
 #define EEmRING 20
 #define EEpRING 20
-#define SPEEDOFLIGHT 30.0
+#define SPEEDOFLIGHT 30.0 // (cm/ns)
 //872415403
 
 // system include files
@@ -139,14 +139,13 @@ private:
 	// ----------member data ---------------------------
 	unsigned int _maxLoop; ///< maximum number of loops for intercalibration
 	bool _isSplash; ///< flag to activate for splash analysis
+	bool _makeEventPlots; ///< flag for making plots for each event
 	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
 	edm::InputTag _ecalRecHitsEETAG;
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
-	unsigned int _recHitMin;
+	unsigned int _recHitMin; ///< require at least this many rec hits to count the event
 	float        _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
 
-	bool _isSplash;
-	bool _makeEventPlots;
 
 	void dumpCalibration(std::string filename);
 
@@ -280,12 +279,11 @@ private:
 EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfig) :
 	_maxLoop(iConfig.getParameter<unsigned int>("maxLoop")),
 	_isSplash(iConfig.getParameter<bool>("isSplash")),
+	_makeEventPlots(iConfig.getParameter<bool>("makeEventPlots")),
 	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
-	_isSplash(iConfig.getParameter<bool>("isSplash")),
-	_makeEventPlots(iConfig.getParameter<bool>("makeEventPlots")),
 	_minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
 	_ringTools(EcalRingCalibrationTools())
 {
@@ -377,6 +375,11 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 	if(recHit.detid().subdetId() == EcalBarrel) {
 		EBDetId id(recHit.detid());
 		//if(id.ieta() == 1)
+		if(id.ieta() == -75 && id.iphi() == 119)
+		{
+			std::cout << "RawID\t" << id.rawId() << std::endl;
+			return false;
+		}
 		timeEB.add(timeEvent);
 	} else {
 		// create EEDetId
@@ -451,9 +454,6 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 
-#ifdef DEBUG
-	std::cout << "[DEBUG]" << "\t" << ebRecHitHandle->size() << "\t" << eeRecHitHandle->size() << std::endl;
-#endif
    
 	eventTimeMap_.clear();
 	
@@ -472,6 +472,12 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 		addRecHit(*recHit_itr); // add the recHit to the list of recHits used for calibration (with the relative information)
 	}
 
+#ifdef DEBUG
+	std::cout << "[DEBUG]" << "\t" << eventTimeMap_.size();
+	std::cout << timeEB.num() << "\t";
+	std::cout << timeEEM.num() << "\t";
+	std::cout << timeEEP.num() << "\n";
+#endif
 	// If we got less than the minimum recHits, continue
 	if(eventTimeMap_.size() < _recHitMin) return kContinue;
 	if(timeEB.num() < 4) return kContinue;
@@ -494,7 +500,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// Add adjusted timeEvents to CorrectionsMap
 	for(auto const & it : eventTimeMap_)
 	{
-		EcalTimingEvent event =_isSplash ? correctGlobalOffset(it.second) : it.second;
+		EcalTimingEvent event =_isSplash ? correctGlobalOffset(it.second, splashDir, bunchCorr) : it.second;
 		if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
 	}
