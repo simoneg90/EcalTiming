@@ -77,9 +77,9 @@ process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(
 #        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
          #'/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
-         #'/store/caf/user/ccecal/TPG/splash_events_run_239895_26_events_beam_1.root',
-         #'/store/caf/user/ccecal/TPG/splash_events_run_239895_31_events_beam_2.root'),
-        '/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/479/00000/AE12BB31-0AF3-E411-977C-02163E0139CE.root'),
+         '/store/caf/user/ccecal/TPG/splash_events_run_239895_26_events_beam_1.root',
+         '/store/caf/user/ccecal/TPG/splash_events_run_239895_31_events_beam_2.root'),
+         #'/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/479/00000/AE12BB31-0AF3-E411-977C-02163E0139CE.root'),
 #        '/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/484/00000/6CF7FB5C-1EF3-E411-BD0E-02163E01390C.root'),
 )
 
@@ -117,7 +117,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 ## Histogram files
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("/afs/cern.ch/user/s/shervin/public/4Carlotta/ecalCreateTimeCalibs-243479-v1.root"),
+                                   fileName = cms.string("/afs/cern.ch/work/p/phansen/public/ecal-timing/ecalCreateTimeCalibs-splash-v1.root"),
                                    closeFileFast = cms.untracked.bool(True)
                                    )
 
@@ -125,7 +125,7 @@ process.TFileService = cms.Service("TFileService",
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
 ### NumBer of events
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
 
 
 ### Process Full Path
@@ -139,7 +139,8 @@ process.p = cms.Path( #process.spashesHltFilter *
 process.endp = cms.EndPath(process.RECOoutput)
 
 ### Schedule ###
-process.schedule = cms.Schedule(process.p, process.endp) 
+#process.schedule = cms.Schedule(process.p, process.endp) 
+process.schedule = cms.Schedule(process.p) 
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
                             maxLoop = cms.uint32(1),

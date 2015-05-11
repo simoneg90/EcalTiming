@@ -94,6 +94,7 @@
 #include <functional>
 #include <set>
 #include <assert.h>
+#include <time.h>
 
 #include <TMath.h>
 #include <Math/VectorUtil.h>
@@ -554,8 +555,14 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 #endif
 
 	// save txt
+	time_t     now = time(0);
+	struct tm  tstruct;
+	char       current_time[80];
+	tstruct = *localtime(&now);
+	strftime(current_time, sizeof(current_time), "%Y-%m-%d.%X", &tstruct);
+
 	char filename[100];
-	sprintf(filename, "dumpConstants-%d.dat", iLoop_); //text file holding constants
+	sprintf(filename, "dumpConstants-%d-%s.dat", iLoop_,current_time); //text file holding constants
 	dumpCalibration(filename);
 
 	// save the xml
