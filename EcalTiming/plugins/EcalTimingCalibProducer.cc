@@ -23,7 +23,6 @@
 #define EEmRING 20
 #define EEpRING 20
 #define SPEEDOFLIGHT 30.0 // (cm/ns)
-//872415403
 
 // system include files
 #include <memory>
@@ -97,7 +96,7 @@
 
 #include <TMath.h>
 #include <Math/VectorUtil.h>
-#include <boost/tokenizer.hpp>
+//#include <boost/tokenizer.hpp>
 
 
 //
@@ -226,7 +225,7 @@ private:
 	edm::Service<TFileService> fileService_;
 	TFileDirectory histDir_;
 	// Mean Histograms
-	TProfile2D* EneMapEEP_; /// Using TProfile2D so we don't paint empty bins. 
+	TProfile2D* EneMapEEP_; /// Using TProfile2D so we don't paint empty bins.
 	TProfile2D* EneMapEEM_;
 	TProfile2D* TimeMapEEP_;
 	TProfile2D* TimeMapEEM_;
@@ -366,6 +365,7 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 	//check if rechit is valid
 	if(! recHit.checkFlags(_recHitFlags)) return false;
 	if( recHit.energy() < _minRecHitEnergy) return false;
+	if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * _minRecHitEnergy) return false;
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 	EcalTimingEvent timeEvent(recHit);
@@ -375,8 +375,7 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 	if(recHit.detid().subdetId() == EcalBarrel) {
 		EBDetId id(recHit.detid());
 		//if(id.ieta() == 1)
-		if(id.ieta() == -75 && id.iphi() == 119)
-		{
+		if(id.ieta() == -75 && id.iphi() == 119) {
 			std::cout << "RawID\t" << id.rawId() << std::endl;
 			return false;
 		}
@@ -401,46 +400,43 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 		EBDetId id(recHit.detid());
 		// Fill Rechit Energy
 		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), recHit.energy()); // 2D energy map
-		if(abs(recHit.time()) < 5)
-			Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), recHit.time()); // 2D time map
-		else
-			Event_TimeMapEB_OOT->Fill(id.ieta(), id.iphi(), recHit.time()); // Out of Time Hist
+		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), recHit.time()); // 2D time map
+
 	} else {
 		// create EEDetId
 		EEDetId id(recHit.detid());
 		if(id.zside() < 0) {
 			Event_EneMapEEM_->Fill(id.ix(), id.iy(), recHit.energy());
-			if(abs(recHit.time()) < 5)
-				Event_TimeMapEEM_->Fill(id.ix(), id.iy(), recHit.time());
-			else
-				Event_TimeMapEEM_OOT->Fill(id.ix(), id.iy(), recHit.time());
+			Event_TimeMapEEM_->Fill(id.ix(), id.iy(), recHit.time());
+
 		} else {
 			Event_EneMapEEP_->Fill(id.ix(), id.iy(), recHit.energy());
-			if(abs(recHit.time()) < 5)
-				Event_TimeMapEEP_->Fill(id.ix(), id.iy(), recHit.time());
-			else
-				Event_TimeMapEEP_OOT->Fill(id.ix(), id.iy(), recHit.time());
+			Event_TimeMapEEP_->Fill(id.ix(), id.iy(), recHit.time());
+
 		}
 	}
 }
 
+/**
+	@param[in] te EcalTimingEvent
+	@param[in] splashDir integer indicating the beam direction in splash events
+	@param[in] bunchCorr float correction for global event timing
+	@param[out] c corrected timing event
+*/
 EcalTimingEvent EcalTimingCalibProducer::correctGlobalOffset(const EcalTimingEvent& te, int splashDir, float bunchCorr)
 {
 	DetId id = te.detid();
 
-	const CaloSubdetectorGeometry * geom;
-	if(id.subdetId() == EcalBarrel) geom = barrelGeometry_;
-	else geom = endcapGeometry_;
+	const CaloSubdetectorGeometry *geom = (id.subdetId() == EcalBarrel) ? barrelGeometry_ : endcapGeometry_;
 
 	float z = geom->getGeometry(id)->getPosition().z();
 	float mag = geom->getGeometry(id)->getPosition().mag();
 
-	float time = te.time() - (splashDir * z - mag)/SPEEDOFLIGHT; // Adjust time by difference in time of flight for halo/splash
+	float time = te.time() - (splashDir * z - mag) / SPEEDOFLIGHT; // Adjust time by difference in time of flight for halo/splash
 
 	time += bunchCorr;
 
-	EcalTimingEvent ret(EcalRecHit(id, te.energy(), time ));
-	return ret;
+	return 	EcalTimingEvent (EcalRecHit(id, te.energy(), time ));
 }
 
 // ------------ called for each event in the loop.  The present event loop can be stopped by return kStop ------------
@@ -454,13 +450,13 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	edm::Handle<EERecHitCollection> eeRecHitHandle;
 	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 
-   
+
 	eventTimeMap_.clear();
-	
+
 	timeEB.clear();
 	timeEEM.clear();
 	timeEEP.clear();
-    
+
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
@@ -485,22 +481,20 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	std::cout << "[DUMP]\t" << timeEB << "\t"  << timeEEM << "\t" << timeEEP << std::endl;
 	// Make a new directory for Histograms for each event
 	char eventDirName[100];
-	if(_makeEventPlots)
-	{
+	if(_makeEventPlots) {
 		sprintf(eventDirName, "Event_%d", int(iEvent.id().event()) );
 		TFileDirectory eventDir = histDir_.mkdir(eventDirName);
 		initEventHists(eventDir);
 	}
 
-	int splashDir = int(timeEEP.mean() > timeEEM.mean())*2 - 1; // 1 for beam 1, -1 for beam 2
+	int splashDir = (timeEEP.mean() > timeEEM.mean()) ? 1 : -1; // 1 for beam 1, -1 for beam 2
 	float bunchCorr = 0.0f;
-	if( TMath::Max(timeEEP.mean(),timeEEM.mean()) > 10.0) 
-			bunchCorr = -25.0f;
+	if( std::max(timeEEP.mean(), timeEEM.mean()) > 10.0)
+		bunchCorr = -25.0f;
 
 	// Add adjusted timeEvents to CorrectionsMap
-	for(auto const & it : eventTimeMap_)
-	{
-		EcalTimingEvent event =_isSplash ? correctGlobalOffset(it.second, splashDir, bunchCorr) : it.second;
+	for(auto const & it : eventTimeMap_) {
+		EcalTimingEvent event = _isSplash ? correctGlobalOffset(it.second, splashDir, bunchCorr) : it.second;
 		if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
 	}
