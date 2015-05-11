@@ -1,6 +1,28 @@
 import FWCore.ParameterSet.Config as cms
+import os, sys, imp, re
+import FWCore.ParameterSet.VarParsing as VarParsing
+
+#sys.path(".")
+############################################################
+### SETUP OPTIONS
+options = VarParsing.VarParsing('standard')
+options.register('jsonFile',
+                 "",
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.string,
+                 "path and name of the json file")
+### setup any defaults you want
+options.output="ecalTiming.root"
+options.secondaryOutput="ntuple.root"
+options.files= ""
+options.maxEvents = -1 # -1 means all events
+### get and parse the command line arguments
+options.parseArguments()
+print options
 
 process = cms.Process("TIMECALIBANALYSIS")
+
+#dataset=/MinimumBias/Commissioning2015-v1/RAW run=243506
 
 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
@@ -43,6 +65,9 @@ process.caloCosmics.remove(process.hcalLocalRecoSequence)
 process.caloCosmics.remove(process.hfreco)
 process.caloCosmics.remove(process.horeco)
 process.caloCosmics.remove(process.zdcreco)
+
+
+
 process.caloCosmics.remove(process.ecalClusters)
 
 process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
@@ -74,13 +99,8 @@ process.options = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
                             #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
-  fileNames = cms.untracked.vstring(
+ fileNames = cms.untracked.vstring(options.files),
 #        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
-         #'/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
-         #'/store/caf/user/ccecal/TPG/splash_events_run_239895_26_events_beam_1.root',
-         #'/store/caf/user/ccecal/TPG/splash_events_run_239895_31_events_beam_2.root'),
-        '/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/479/00000/AE12BB31-0AF3-E411-977C-02163E0139CE.root'),
-#        '/store/data/Commissioning2015/MinimumBias/RAW/v1/000/243/484/00000/6CF7FB5C-1EF3-E411-BD0E-02163E01390C.root'),
 )
 
 # process.source = cms.Source(
@@ -117,7 +137,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 ## Histogram files
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("/afs/cern.ch/user/s/shervin/public/4Carlotta/ecalCreateTimeCalibs-243479-v1.root"),
+                                   fileName = cms.string('/afs/cern.ch/user/s/shervin/scratch1/CMSSW_7_3_4/src/CalibCalorimetry/EcalTiming/test/'+options.output),
                                    closeFileFast = cms.untracked.bool(True)
                                    )
 
@@ -125,7 +145,7 @@ process.TFileService = cms.Service("TFileService",
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
 ### NumBer of events
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 
 
 ### Process Full Path
@@ -139,7 +159,7 @@ process.p = cms.Path( #process.spashesHltFilter *
 process.endp = cms.EndPath(process.RECOoutput)
 
 ### Schedule ###
-process.schedule = cms.Schedule(process.p, process.endp) 
+process.schedule = cms.Schedule(process.p) # , process.endp) 
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
                             maxLoop = cms.uint32(1),
@@ -148,7 +168,7 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
                             recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
-                            recHitMinimumN = cms.uint32(50000),
+                            recHitMinimumN = cms.uint32(10),
                             #recHitMinimumN = cms.uint32(2),
                             minRecHitEnergy = cms.double(1),
                             )
