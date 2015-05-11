@@ -171,6 +171,8 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitMinimumN = cms.uint32(10),
                             #recHitMinimumN = cms.uint32(2),
                             minRecHitEnergy = cms.double(1),
+                            produceNewCalib = cms.bool(True),
+                            outputDumpFile = process.TFileService.fileName,
                             )
 
 processDumpFile = open('processDump.py', 'w')

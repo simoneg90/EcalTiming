@@ -136,6 +136,7 @@ public:
 	virtual void endOfJob();
 private:
 	// ----------member data ---------------------------
+    // input parameters
 	unsigned int _maxLoop; ///< maximum number of loops for intercalibration
 	bool _isSplash; ///< flag to activate for splash analysis
 	bool _makeEventPlots; ///< flag for making plots for each event
@@ -144,9 +145,11 @@ private:
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 	unsigned int _recHitMin; ///< require at least this many rec hits to count the event
 	float        _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
-
+	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
+	std::string _outputDumpFileName; ///< name of the output file for the calibration constants' dump
 
 	void dumpCalibration(std::string filename);
+	void dumpCorrections(std::string filename);
 
 // plotting
 ///fill histograms with the measured shifts (that will become -corrections for the next step)
@@ -284,14 +287,18 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
 	_minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
+	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
+	_outputDumpFileName(iConfig.getParameter<std::string>("outputDumpFile")),
 	_ringTools(EcalRingCalibrationTools())
 {
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
 	// data is being produced
-	setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
+	if(_produceNewCalib){
+		setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
 //	setWhatProduced(this, &EcalTimingCalibProducer::produceCalibErrors);
-	setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
+		setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
+	}
 	//now do what ever other initialization is needed
 }
 
@@ -528,6 +535,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
+	//for(auto  calibRecHit_itr : _timeCalibMap) {
 		FillCalibrationCorrectionHists(calibRecHit_itr); // histograms with shifts to be corrected at each step
 		float correction =  - calibRecHit_itr->second.mean();
 #ifdef DEBUG
@@ -549,9 +557,10 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 	// save txt
 	char filename[100];
-	sprintf(filename, "dumpConstants-%d.dat", iLoop_); //text file holding constants
+	sprintf(filename, "%s-%d.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str(), iLoop_); //text file holding constants
 	dumpCalibration(filename);
-
+	sprintf(filename, "%s-corr-%d.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str(), iLoop_); //text file holding constants
+	dumpCorrections(filename);
 	// save the xml
 
 	if(iLoop_ >= _maxLoop - 1) return kStop;
@@ -563,6 +572,29 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 void
 EcalTimingCalibProducer::endOfJob()
 {
+}
+
+void EcalTimingCalibProducer::dumpCorrections(std::string filename)
+{
+	std::ofstream fout(filename);
+
+	// loop over the constants
+	// to make more efficient
+	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
+		DetId id_ = calibRecHit_itr->first;
+		if(id_.subdetId()==EcalBarrel){
+			EBDetId id(id_);
+			fout << id.ieta() << "\t" << id.iphi() << "\t" << 0 
+				 << "\t" << calibRecHit_itr->second.mean() << "\t" << calibRecHit_itr->second.stdDev() << "\t" << calibRecHit_itr->second.num() << "\t" << calibRecHit_itr->second.meanE() 
+				 << "\t" << id.rawId() << std::endl;
+		} else {
+			EEDetId id(id_);
+			fout << id.ix() << "\t" << id.iy() << "\t" << id.zside() 
+				 << "\t" << calibRecHit_itr->second.mean() << "\t" << calibRecHit_itr->second.stdDev() << "\t" << calibRecHit_itr->second.num() << "\t" << calibRecHit_itr->second.meanE() 
+				 << "\t" << id.rawId() << std::endl;
+		}
+	}
+	fout.close();
 }
 
 void EcalTimingCalibProducer::dumpCalibration(std::string filename)
@@ -593,6 +625,7 @@ void EcalTimingCalibProducer::dumpCalibration(std::string filename)
 	}
 	fout.close();
 }
+
 
 
 
