@@ -13,6 +13,9 @@ def saveEventTimingPlots(eventdir):
 			"EB_OOT":eventdir.Get('TimeMapEB_OOT'),
 			"EEP_OOT": eventdir.Get('TimeMapEEP_OOT'),
 			"EEM_OOT": eventdir.Get('TimeMapEEM_OOT'),
+			"EB_en":eventdir.Get('EneMapEB'),
+			"EEP_en": eventdir.Get('EneMapEEP'),
+			"EEM_en": eventdir.Get('EneMapEEM'),
 			}
 
 	text = {}
@@ -28,24 +31,26 @@ def saveEventTimingPlots(eventdir):
 	for hist_name in ["EEM","EB","EEP"]:
 		h = timehist[hist_name]
 		h_oot = timehist[hist_name + "_OOT"]
+		h_en = timehist[hist_name + "_en"]
 
 		iPad += 1
 		c.cd(iPad)
 		h.Draw("colz")
 		t.DrawTextNDC(0,0,eventName + ' ' + hist_name)
 
-		c.cd(iPad+3)
-		h_oot.GetZaxis().SetRangeUser(-100,100)
-		h_oot.Draw("colz")
+		p = c.cd(iPad+3)
+		p.SetLogz()
+		h_en.GetZaxis().SetRangeUser(0,1000)
+		h_en.Draw("colz")
 
 	print eventName, [timehist[name].Integral()/timehist[name].GetEntries() for name in ["EEM","EB","EEP"]]
 
-	c.SaveAs("plots/" + eventName+".pdf")
-	c.SaveAs("plots/" + eventName+".png")
+	c.SaveAs("plots/" + eventName+"_en.pdf")
+	c.SaveAs("plots/" + eventName+"_en.png")
 
 
 if(__name__ == "__main__"):
-	f = ROOT.TFile("ecalCreateTimeCalibs.root")
+	f = ROOT.TFile("/afs/cern.ch/work/p/phansen/public/ecal-timing/splash_events_run_239895_26_events_beam_1.root")
 	dir = f.Get("TriggerResults/EcalSplashTiming_0")
 	latex = open("EventPlots.tex",'w')
 	for key in dir.GetListOfKeys():

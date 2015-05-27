@@ -5,7 +5,7 @@ Style options mostly from CMS's tdrStyle.C
 """
 def customROOTstyle() :
     ROOT.gROOT.SetBatch(True)
-    ROOT.gStyle.SetOptTitle(False)
+    ROOT.gStyle.SetOptTitle(True)
     ROOT.gStyle.SetOptStat(False)
     ROOT.gStyle.SetPadTopMargin(0.06);
     ROOT.gStyle.SetPadBottomMargin(0.13);
@@ -16,7 +16,9 @@ def customROOTstyle() :
     ROOT.gStyle.SetLabelOffset(0.007, "XYZ");
     ROOT.gStyle.SetLabelSize(0.05, "XYZ");
     ROOT.gStyle.SetTitleSize(0.05, "XYZ");
-    ROOT.gStyle.SetTitleOffset(2, "XYZ");
+    ROOT.gStyle.SetTitleOffset(1.0, "X");
+    ROOT.gStyle.SetTitleOffset(1.4, "Y");
+    ROOT.gStyle.SetTitleOffset(1.0, "Z");
     ROOT.gStyle.SetAxisColor(1, "XYZ");
     ROOT.gStyle.SetStripDecimals(True);
     ROOT.gStyle.SetTickLength(0.03, "XYZ");
@@ -36,6 +38,26 @@ def customROOTstyle() :
     ROOT.gStyle.SetFrameLineWidth(1);
     ROOT.gStyle.SetPalette(55);
     ROOT.gStyle.SetNumberContours(100);
+
+def drawMultipleGrid(hists,outname,limits=[],setLogY=False,setLogZ=False, ncols = 3):
+	c = ROOT.TCanvas("c", "c", 1500,1100)
+	nhists = len(hists)
+	nrows = (nhists-1)/ncols+1
+	c.Divide(ncols,nrows)
+	
+	if len(limits) == 2:
+		limits = [limits]*nhists
+	if len(limits) == ncols and len(limits[0]) == 2:
+		limits = limits*nrows
+
+	for pad in range(len(hists)):
+		p = c.cd(pad +1)
+		if setLogY: p.SetLogy()
+		if setLogZ: p.SetLogz()
+		if limits: hists[pad].GetZaxis().SetRangeUser(limits[pad][0], limits[pad][1])
+		hists[pad].Draw("colz")
+
+	c.SaveAs(outname)
 
 def saveHists(file,prefix="",filter=""):
     if prefix: prefix += '_'
@@ -62,7 +84,7 @@ def drawHist(hist,name,width=500,height=500, drawoptions=""):
     hist.Draw(drawoptions)
     c.SaveAs(name)
 
-def drawMultiple(hists,labels,filename,colors=[], width = 500, height = 500, norm = False, xtitle = "", ytitle = "", rebin = 0):
+def drawMultipleSame(hists,labels,filename,colors=[], width = 500, height = 500, norm = False, xtitle = "", ytitle = "", rebin = 0):
     customROOTstyle()
     hist_max = 0
     if not colors:
