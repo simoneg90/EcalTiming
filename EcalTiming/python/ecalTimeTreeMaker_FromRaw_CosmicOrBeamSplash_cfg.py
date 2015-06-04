@@ -166,7 +166,7 @@ process.endp = cms.EndPath(process.RECOoutput)
 process.schedule = cms.Schedule(process.p) # , process.endp) 
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
-                            maxLoop = cms.uint32(1),
+                            maxLoop = cms.uint32(2),
                             isSplash = cms.bool(True),
                             makeEventPlots = cms.bool(True),
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
@@ -178,6 +178,8 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
 									 globalOffset = cms.double(options.offset),
                             produceNewCalib = cms.bool(True),
                             outputDumpFile = process.TFileService.fileName,
+                            noiseRMSThreshold = cms.double(0.5),
+                            noiseTimeThreshold = cms.double(2.0)
                             )
 
 processDumpFile = open('processDump.py', 'w')

@@ -149,6 +149,8 @@ private:
 	float        _globalOffset;    ///< time to subtract from every event
 	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
 	std::string _outputDumpFileName; ///< name of the output file for the calibration constants' dump
+	float _noiseRMSThreshold;
+	float _noiseTimeThreshold;
 
 	void dumpCalibration(std::string filename);
 	void dumpCorrections(std::string filename);
@@ -271,6 +273,9 @@ private:
 	EcalRingCalibrationTools _ringTools;
 	const CaloSubdetectorGeometry * endcapGeometry_;
 	const CaloSubdetectorGeometry * barrelGeometry_;
+
+	std::vector<int> _noisyXtals;
+	std::vector<TH1F*> _noisyXtalsHists;
 };
 
 
@@ -297,6 +302,8 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
 	_outputDumpFileName(iConfig.getParameter<std::string>("outputDumpFile")),
+	_noiseRMSThreshold(iConfig.getParameter<double>("noiseRMSThreshold")),
+	_noiseTimeThreshold(iConfig.getParameter<double>("noiseTimeThreshold")),
 	_ringTools(EcalRingCalibrationTools())
 {
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
@@ -431,6 +438,10 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 			RechitEnergyTimeEEP->Fill(recHit.energy(), recHit.time());
 		}
 	}
+	// if it is a noisy crystal plot it
+	auto it = std::find(_noisyXtals.begin(), _noisyXtals.end(), recHit.detid().rawId());
+	if(it != _noisyXtals.end())
+		_noisyXtalsHists[std::distance(_noisyXtals.begin(), it)]->Fill(recHit.time());
 }
 
 /**
@@ -513,6 +524,16 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	// Add adjusted timeEvents to CorrectionsMap
 	for(auto const & it : eventTimeMap_) {
 		EcalTimingEvent event = _isSplash ? correctGlobalOffset(it.second, splashDir, bunchCorr) : it.second;
+		// if it is a noisy and hit is out of time, skip it
+		auto find_it = std::find(_noisyXtals.begin(), _noisyXtals.end(), event.detid().rawId());
+		if(find_it != _noisyXtals.end() && abs(event.time()) > _noiseTimeThreshold)
+		{
+#ifdef DEBUG
+			std::cout << "Noisy: " << event.detid().rawId() << ' ' << event.time() << std::endl;
+#endif
+			continue;
+		}
+
 		if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
 	}
@@ -559,6 +580,15 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 		// add filing Energy hists here
 	}
 
+	//Find noisy xtals
+	_noisyXtals.clear();
+	for(auto calibRecHit : _timeCalibMap) { 
+		if(calibRecHit.second.stdDev() > _noiseTimeThreshold)
+		{
+			DetId id_ = calibRecHit.first;
+			_noisyXtals.push_back(id_.rawId());
+		}
+	}
 #ifdef DEBUG
 	calib2_itr = _calibConstants->find(RAWIDCRY);
 	std::cout << "index\tcalibConstants\ttimeCalibConstants: after setValue\n"
@@ -724,6 +754,18 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 	RechitEnergyTimeEEP = fdir.make<TH2F>("RechitEnergyTimeEEP", "RecHit Energy vs Time EE+;Rechit Energy[GeV]; Time[ns]; Events", 200, 0.0, 1000.0, 100, -15,30);
 	RechitEnergyTimeEB  = fdir.make<TH2F>("RechitEnergyTimeEB",  "RecHit Energy vs Time EB; Rechit Energy[GeV]; Time[ns]; Events", 200, 0.0, 100.0,  100, -15,30);
 
+	if(_noisyXtals.size())
+	{
+		_noisyXtalsHists.clear();
+		char histDirName[] = "noisyXtals";
+		TFileDirectory dir = fdir.mkdir( histDirName);
+		for(auto raw_id : _noisyXtals)
+		{
+			char name[100];
+			sprintf(name, "xtal_%d", raw_id);
+			_noisyXtalsHists.push_back(dir.make<TH1F>(name,name,21,-10,11));
+		}
+	}
 }
 
 //define this as a plug-in
