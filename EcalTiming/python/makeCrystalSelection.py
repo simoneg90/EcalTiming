@@ -23,7 +23,7 @@ iphi_max = 170
 ieta_min = 26
 ieta_max = 45
 
-fix = [ (iphi, ieta) for iphi in range(iphi_min, iphi_max +1) for ieta in
+fix = [ (ieta,iphi) for iphi in range(iphi_min, iphi_max +1) for ieta in
 		range( ieta_min, ieta_max +1)]
 
 def fixCrystal(a,b,det):
@@ -45,7 +45,8 @@ def getCalibrations(filename, invert = -1):
 			constant = invert*float(data[3])
 			err = float(data[4])
 
-			if( fixCrystal(x,y,detector)):
+			# if invert != -1 store things that fail instead
+			if( fixCrystal(x,y,detector) == (invert == -1) ):
 				calibrations[(x,y,detector)] = (constant,err)
 	return calibrations
 
@@ -58,6 +59,7 @@ oldcalibfile = '/afs/cern.ch/user/p/phansen/public/ecal-timing/CMSSW_7_3_4/src/U
 
 beam1 = getCalibrations(beam1file)
 beam2 = getCalibrations(beam2file)
+oldcalib = getCalibrations(oldcalibfile, invert = 1)
 
 average = dict()
 
@@ -68,6 +70,8 @@ for crystal in beam1:
 	err = ((b1ave - b2ave)**2*nBeam1*nBeam2)/(nBeam1 + nBeam2)**2 + (nBeam1*b1err**2 + nBeam2*b2err**2)/(nBeam1 + nBeam2)
 	average[crystal] = (ave,err)
 
+print len(beam1), len(beam2), len(oldcalib)
+
 from CalibCalorimetry.EcalTiming.calibrationXML import CalibrationXML
 
 cal = CalibrationXML()
@@ -75,5 +79,47 @@ cal = CalibrationXML()
 for (x,y,d),(ave,err) in average.iteritems():
 	cal.addCrystal(x,y,d,ave,err)
 
+for (x,y,d),(ave,err) in oldcalib.iteritems():
+	cal.addCrystal(x,y,d,ave,err)
+
+print len(cal.crystals)
+cal.sort()
+
 cal.writeConstant("const.xml")
 cal.writeErrors("error.xml")
+
+import ROOT
+from CalibCalorimetry.EcalTiming.PlotUtils import drawMultipleGrid,customROOTstyle
+customROOTstyle()
+
+def plotCalibration(crystals,histoname):
+	EB = ROOT.TProfile2D(histoname + "EB",histoname + " EB",360,1,361,85*2,-84,86) 
+	EEP = ROOT.TProfile2D(histoname + "EEP",histoname + " EEP", 100, 1, 101, 100, 1, 101)
+	EEM = ROOT.TProfile2D(histoname + "EEM",histoname + " EEM", 100, 1, 101, 100, 1, 101)
+	
+	EB.SetZTitle("ns")
+	EB.SetXTitle("i#phi")
+	EB.SetYTitle("i#eta")
+
+	EEP.SetZTitle("ns")
+	EEP.SetXTitle("ix")
+	EEP.SetYTitle("iy")
+	EEM.SetZTitle("ns")
+	EEM.SetXTitle("ix")
+	EEM.SetYTitle("iy")
+
+	for c in crystals:
+		if c.det == 0:
+			EB.Fill(c.iphi,c.ieta,c.calib)
+		elif c.det == -1:
+			EEM.Fill(c.ix,c.iy,c.calib)
+		elif c.det == 1:
+			EEP.Fill(c.ix,c.iy,c.calib)
+
+	return (EEM, EB, EEP)
+
+print "plot"
+drawMultipleGrid(plotCalibration(cal.crystals, "new_calib"),"plots/new_calib.png", limits = [[-10,10]]*3, height = 600 )
+
+
+

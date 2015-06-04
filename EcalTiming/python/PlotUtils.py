@@ -39,8 +39,8 @@ def customROOTstyle() :
     ROOT.gStyle.SetPalette(55);
     ROOT.gStyle.SetNumberContours(100);
 
-def drawMultipleGrid(hists,outname,limits=[],setLogY=False,setLogZ=False, ncols = 3):
-	c = ROOT.TCanvas("c", "c", 1500,1100)
+def drawMultipleGrid(hists,outname,limits=[],setLogY=False,setLogZ=False, ncols = 3, width=1500,height=1100):
+	c = ROOT.TCanvas("c", "c", width,height)
 	nhists = len(hists)
 	nrows = (nhists-1)/ncols+1
 	c.Divide(ncols,nrows)

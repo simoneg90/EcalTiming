@@ -79,6 +79,9 @@ def plotCalibration(filename,histoname,invert=1,doEnergy=True):
 			detector = int(data[2])
 			constant = invert*float(data[3])
 			err = float(data[4])
+			raw = int(data[-1])
+			if err > 1.0:
+				print "noisy:", raw, err
 			if detector == 0:
 				if(x < 0): x+=1
 				EB.Fill(y,x,constant)
@@ -261,6 +264,40 @@ def to1d(h,min=float("-inf"), max=float("inf"),bins=100):
 				new.Fill(h.GetBinContent(bin))
 	return new
 
+def plotTimevsErr(filename,histoname,invert=1,doEnergy=True):
+	EB =  ROOT.TH2D(histoname + "EB_time_vs_err",  histoname + " EB",  50, -10, 10, 50, 0, 3) 
+	EEP = ROOT.TH2D(histoname + "EEP_time_vs_err", histoname + " EEP", 50, -10, 10, 50, 0, 3)
+	EEM = ROOT.TH2D(histoname + "EEM_time_vs_err", histoname + " EEM", 50, -10, 10, 50, 0, 3)
+	
+	EB.SetZTitle( "Events")
+	EB.SetXTitle( "Time"  )
+	EB.SetYTitle( "Error" )
+	EEP.SetZTitle("Events")
+	EEP.SetXTitle("Time"  )
+	EEP.SetYTitle("Error" )
+	EEM.SetZTitle("Events")
+	EEM.SetXTitle("Time"  )
+	EEM.SetYTitle("Error" )
+
+	with open(filename) as f:
+		for line in f:
+			data = line.split()
+			x = int(data[0])
+			y = int(data[1])
+			detector = int(data[2])
+			constant = invert*float(data[3])
+			err = float(data[4])
+
+			if detector == 0:
+				if(x < 0): x+=1
+				EB.Fill(constant, err)
+			elif detector == -1:
+				EEM.Fill(constant, err)
+			elif detector == 1:
+				EEP.Fill(constant, err)
+
+		return (EEM, EB, EEP) 
+
 def addHistogram(h1,h2,c=1):
 	for i in range(1,h1.GetNbinsX()+1):
 		for j in range(1,h1.GetNbinsY()+1):
@@ -280,22 +317,24 @@ def countRangeHistogram(h1,min=float("-inf"), max=float("inf")):
 				outside += 1
 	return inside,outside
 
-beam1file = '/afs/cern.ch/work/p/phansen/public/ecal-timing/newCalib/splash_events_run_239895_26_events_beam_1-corr-0.dat'
-beam2file = '/afs/cern.ch/work/p/phansen/public/ecal-timing/newCalib/splash_events_run_239895_31_events_beam_2-corr-0.dat'
+beam1file0 = '/afs/cern.ch/work/p/phansen/public/ecal-timing/newCalib/splash_events_run_239895_26_events_beam_1-corr-0.dat'
+beam2file0 = '/afs/cern.ch/work/p/phansen/public/ecal-timing/newCalib/splash_events_run_239895_31_events_beam_2-corr-0.dat'
+beam1file1 = '/afs/cern.ch/work/p/phansen/public/ecal-timing/newCalib/splash_events_run_239895_26_events_beam_1-corr-1.dat'
+beam2file1 = '/afs/cern.ch/work/p/phansen/public/ecal-timing/newCalib/splash_events_run_239895_31_events_beam_2-corr-1.dat'
 
 oldcalibfile = '/afs/cern.ch/user/p/phansen/public/ecal-timing/CMSSW_7_3_4/src/Usercode/DBDump/dump_EcalTimeCalibConstants_v07_offline__since_00204623_till_4294967295.dat'
 
 customROOTstyle()
 ROOT.gROOT.SetBatch(True)
 
-plotElectronics(beam1file,"beam1",invert=-1)
-plotElectronics(beam2file,"beam2",invert=-1)
+plotElectronics(beam1file0,"beam1",invert=-1)
+plotElectronics(beam2file0,"beam2",invert=-1)
 plotElectronics(oldcalibfile,"oldcalib")
 
-beam1, beam1err, beam1en = plotCalibration(beam1file,"beam1",invert=-1)
+beam1, beam1err, beam1en = plotCalibration(beam1file0,"beam1",invert=-1)
 drawMultipleGrid(beam1 + beam1err,"plots/beam1.png",limits=[[-10,10]]*3 + [[0,2]]*3)
 
-beam2, beam2err, beam2en = plotCalibration(beam2file,"beam2",invert=-1)
+beam2, beam2err, beam2en = plotCalibration(beam2file0,"beam2",invert=-1)
 drawMultipleGrid(beam2 + beam2err,"plots/beam2.png",limits=[[-10,10]]*3 + [[0,2]]*3)
 
 old, olderr, = plotCalibration(oldcalibfile,"oldcalib",doEnergy=False)
@@ -304,6 +343,14 @@ drawMultipleGrid(old + olderr,"plots/oldcalib.png",limits=[[-10,10]]*3 + [[0,2]]
 drawMultipleGrid(beam1 + beam2,      "plots/times.png",  limits=[-10,10])
 drawMultipleGrid(beam1err + beam2err,"plots/errors.png", limits=[0,3])
 drawMultipleGrid(beam1en + beam2en,  "plots/energy.png", limits=[1,1000],setLogZ=True)
+
+beam1_0_timevserr = plotTimevsErr(beam1file0,"beam1-0", invert = -1)
+beam2_0_timevserr = plotTimevsErr(beam2file0,"beam2-0", invert = -1)
+beam1_1_timevserr = plotTimevsErr(beam1file1,"beam1-1", invert = -1)
+beam2_1_timevserr = plotTimevsErr(beam2file1,"beam2-1", invert = -1)
+
+drawMultipleGrid( beam1_0_timevserr + beam2_0_timevserr, "plots/timevserr_0.png", setLogZ = True)
+drawMultipleGrid( beam1_1_timevserr + beam2_1_timevserr, "plots/timevserr_1.png", setLogZ = True)
 
 print "Noisy channels"
 for h in beam1err + beam2err:
@@ -353,9 +400,11 @@ print beam2_avg, beam2[1].Integral(1,360,87,87)/360
 print old_avg,   old[1].Integral(1,360,87,87)/360  
 
 time1d = [to1d(h,min=-10,max=10,bins=21) for h in beam1 + beam2]
+rms1d = [to1d(h,min=0,max=10,bins=100) for h in beam1err + beam2err]
 
 ROOT.gStyle.SetStatW(.4)
 drawMultipleGrid(time1d,"plots/1d.png",setLogY = True)
+drawMultipleGrid(rms1d,"plots/rms1d.png", setLogY = True)
 
 for i in range(3):
 	addHistogram(beam1[i], old[i],-1)
