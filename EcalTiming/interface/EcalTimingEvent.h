@@ -21,7 +21,7 @@ public:
 	/* 		setEnergyError(rec.energyError()); */
 	/* 		uint32_t timeErrorBits = getMasked(extra_, 24, 8); */
 	/* 		extra_ = setMasked(rec.extra_, timeErrBits & 0xFF, 24, 8); */
-	friend ostream& operator << (ostream& os, const EcalTimingEvent& event)
+	friend std::ostream& operator << (std::ostream& os, const EcalTimingEvent& event)
 	{
 		if(event.detid().subdetId() == EcalBarrel) {
 			EBDetId id(event.detid());

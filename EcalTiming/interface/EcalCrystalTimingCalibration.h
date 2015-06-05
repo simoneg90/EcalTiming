@@ -66,7 +66,7 @@ public:
 	//float totalChi2;
 
 
-	friend ostream& operator<< (ostream& os, const EcalCrystalTimingCalibration& s)
+	friend std::ostream& operator<< (std::ostream& os, const EcalCrystalTimingCalibration& s)
 	{
 		os << s.mean() << "\t" << s.stdDev() << "\t" << s.num();
 		return os;
