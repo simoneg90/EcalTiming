@@ -16,6 +16,12 @@ options.register('offset',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.float,
                  "add this to each crystal time")
+options.register('isSplash',
+                 0,
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.int,
+                 "0=false, 1=true"
+                 )
 ### setup any defaults you want
 options.output="ecalTiming.root"
 options.secondaryOutput="ntuple.root"
@@ -36,8 +42,22 @@ process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
-## Get Cosmic Reconstruction
-process.load('Configuration/StandardSequences/ReconstructionCosmics_cff')
+
+if(options.isSplash==1):
+    ## Get Cosmic Reconstruction
+    process.load('Configuration/StandardSequences/ReconstructionCosmics_cff')
+    process.caloCosmics.remove(process.hbhereco)
+    process.caloCosmics.remove(process.hcalLocalRecoSequence)
+    process.caloCosmics.remove(process.hfreco)
+    process.caloCosmics.remove(process.horeco)
+    process.caloCosmics.remove(process.zdcreco)
+    process.caloCosmics.remove(process.ecalClusters)
+    process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
+else:
+    process.load('Configuration/StandardSequences/Reconstruction_cff')
+    process.recoSequence = cms.Sequence(process.calolocalreco )#+ process.egammaCosmics)
+
+process.load('PhiSym.EcalCalibAlgos.ecalPhiSymLocarecoWeights_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 
@@ -64,18 +84,10 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
 ## Process Reco
-#process.muonSequence = cms.Sequence(process.calolocalreco)
-process.caloCosmics.remove(process.hbhereco)
-process.caloCosmics.remove(process.hcalLocalRecoSequence)
-process.caloCosmics.remove(process.hfreco)
-process.caloCosmics.remove(process.horeco)
-process.caloCosmics.remove(process.zdcreco)
 
 
 
-process.caloCosmics.remove(process.ecalClusters)
 
-process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
 
 
 # Dump Some event Content
@@ -141,7 +153,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 ## Histogram files
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string('/afs/cern.ch/work/p/phansen/public/ecal-timing/'+options.output),
+                                   fileName = cms.string(options.output),
                                    closeFileFast = cms.untracked.bool(True)
                                    )
 
@@ -152,13 +164,21 @@ process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 
 
+process.filter=cms.Sequence()
+if(options.isSplash==1):
+    process.filter+=process.spashesHltFilter
+    process.reco_step = cms.Sequence(process.caloCosmicOrSplashRECOSequence)
+else:
+    process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+
 ### Process Full Path
-process.p = cms.Path( #process.spashesHltFilter *
-                     #+ process.preScaler 
-                      process.digiStep 
-                     #+ process.muonSequence 
-                     + process.caloCosmicOrSplashRECOSequence 
-                    )
+if(options.isSplash==0):
+    process.digiStep = cms.Sequence()
+
+process.p = cms.Path( process.filter #+ process.preScaler 
+                      + process.digiStep 
+                      + process.reco_step
+                      )
 
 process.endp = cms.EndPath(process.RECOoutput)
 
@@ -167,7 +187,7 @@ process.schedule = cms.Schedule(process.p) # , process.endp)
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
                             maxLoop = cms.uint32(2),
-                            isSplash = cms.bool(True),
+                            isSplash = cms.bool(True if options.isSplash == 1 else  False),
                             makeEventPlots = cms.bool(True),
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
@@ -175,7 +195,7 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitMinimumN = cms.uint32(10),
                             #recHitMinimumN = cms.uint32(2),
                             minRecHitEnergy = cms.double(1),
-									 globalOffset = cms.double(options.offset),
+                            globalOffset = cms.double(options.offset),
                             produceNewCalib = cms.bool(True),
                             outputDumpFile = process.TFileService.fileName,
                             noiseRMSThreshold = cms.double(0.5),
