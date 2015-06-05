@@ -1,6 +1,33 @@
 import FWCore.ParameterSet.Config as cms
+import os, sys, imp, re
+import FWCore.ParameterSet.VarParsing as VarParsing
+
+#sys.path(".")
+############################################################
+### SETUP OPTIONS
+options = VarParsing.VarParsing('standard')
+options.register('jsonFile',
+                 "",
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.string,
+                 "path and name of the json file")
+options.register('offset',
+                 0.0,
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.float,
+                 "add this to each crystal time")
+### setup any defaults you want
+options.output="ecalTiming.root"
+options.secondaryOutput="ntuple.root"
+options.files= ""
+options.maxEvents = -1 # -1 means all events
+### get and parse the command line arguments
+options.parseArguments()
+print options
 
 process = cms.Process("TIMECALIBANALYSIS")
+
+#dataset=/MinimumBias/Commissioning2015-v1/RAW run=243506
 
 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
@@ -43,6 +70,9 @@ process.caloCosmics.remove(process.hcalLocalRecoSequence)
 process.caloCosmics.remove(process.hfreco)
 process.caloCosmics.remove(process.horeco)
 process.caloCosmics.remove(process.zdcreco)
+
+
+
 process.caloCosmics.remove(process.ecalClusters)
 
 process.caloCosmicOrSplashRECOSequence = cms.Sequence(process.caloCosmics )#+ process.egammaCosmics)
@@ -61,7 +91,7 @@ process.MessageLogger = cms.Service("MessageLogger",
     destinations = cms.untracked.vstring('cout')
 )
 process.load("FWCore.MessageService.MessageLogger_cfi")
-#process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(100)
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
@@ -73,10 +103,8 @@ process.options = cms.untracked.PSet(
 # Input source
 process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
-                            #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
-  fileNames = cms.untracked.vstring(
-#        'file:/afs/cern.ch/work/e/emanuele/public/ecal/splashesEventsRaw.root'),
-         '/store/caf/user/ccecal/TPG/splashes_239754_5events_April2015_MinimumBias.root',),
+    #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
+ 	 fileNames = cms.untracked.vstring(options.files),
 )
 
 # process.source = cms.Source(
@@ -113,7 +141,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 ## Histogram files
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("ecalCreateTimeCalibs.root"),
+                                   fileName = cms.string('/afs/cern.ch/work/p/phansen/public/ecal-timing/'+options.output),
                                    closeFileFast = cms.untracked.bool(True)
                                    )
 
@@ -121,11 +149,11 @@ process.TFileService = cms.Service("TFileService",
 process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
 ### NumBer of events
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 
 
 ### Process Full Path
-process.p = cms.Path( process.spashesHltFilter *
+process.p = cms.Path( #process.spashesHltFilter *
                      #+ process.preScaler 
                       process.digiStep 
                      #+ process.muonSequence 
@@ -135,12 +163,23 @@ process.p = cms.Path( process.spashesHltFilter *
 process.endp = cms.EndPath(process.RECOoutput)
 
 ### Schedule ###
-process.schedule = cms.Schedule(process.p, process.endp) 
+process.schedule = cms.Schedule(process.p) # , process.endp) 
 
 process.looper = cms.Looper("EcalTimingCalibProducer",
+                            maxLoop = cms.uint32(2),
+                            isSplash = cms.bool(True),
+                            makeEventPlots = cms.bool(True),
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                             recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
                             recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
+                            recHitMinimumN = cms.uint32(10),
+                            #recHitMinimumN = cms.uint32(2),
+                            minRecHitEnergy = cms.double(1),
+									 globalOffset = cms.double(options.offset),
+                            produceNewCalib = cms.bool(True),
+                            outputDumpFile = process.TFileService.fileName,
+                            noiseRMSThreshold = cms.double(0.5),
+                            noiseTimeThreshold = cms.double(2.0)
                             )
 
 processDumpFile = open('processDump.py', 'w')

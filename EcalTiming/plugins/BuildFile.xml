@@ -2,8 +2,11 @@
 <use   name="FWCore/ParameterSet"/>
 <use   name="FWCore/ServiceRegistry"/>
 <use   name="CalibCalorimetry/EcalTiming"/>
+<use   name="Calibration/Tools"/>
 <use   name="CommonTools/UtilAlgos"/>
 <use   name="CondFormats/L1TObjects"/>
+<use   name="CondFormats/EcalObjects"/>
+<use   name="CondFormats/DataRecord"/>
 <use   name="CondTools/Ecal"/>
 <use   name="DataFormats/EcalDigi"/>
 <use   name="DataFormats/EcalRecHit"/>
@@ -14,6 +17,7 @@
 <use   name="RecoEcal/EgammaCoreTools"/>
 <use   name="Geometry/EcalMapping"/>
 <use   name="Geometry/CaloGeometry"/>
+<use   name="Geometry/Records"/>
 <use   name="TrackingTools/TrackAssociator"/>
 <use   name="CalibCalorimetry/EcalLaserCorrection"/>
 <use   name="clhep"/>

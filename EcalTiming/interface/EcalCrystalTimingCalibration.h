@@ -77,6 +77,15 @@ public:
 	{
 		return insertEvent(te_);
 	}
+	inline void clear()
+	{
+	_sum = 0.0f;
+	_sum2 = 0.0f;
+	_num = 0;
+	_sumE = 0.0f;
+
+	timingEvents.clear();
+	}
 private:
 	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_)
@@ -84,6 +93,7 @@ private:
 		if(true || te_.timeError() > 0) {
 			_sum += te_.time();
 			_sum2 += te_.time() * te_.time();
+			_sumE += te_.energy();
 			_num++;
 			timingEvents.push_back(te_);
 			//updateChi2();
