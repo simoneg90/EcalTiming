@@ -2,3 +2,4 @@
 *.root
 __init__.py
 *.pyc
+html/*

@@ -3,7 +3,7 @@ DOCCONF=fulldoc
 mainDir=$PWD
 docDir=doc/doxygen/${DOCCONF}/
 
-remote="git@github.com:shervin86/CalibCalorimetry.git"
+remote="git@github.com:ECALELFS/EcalTiming.git"
 if [ ! -d "${docDir}" ];then
     mkdir -p ${docDir}
 fi
