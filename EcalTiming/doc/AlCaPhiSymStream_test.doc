@@ -1,0 +1,12 @@
+/**
+\page AlCaPhiSymmetry_test
+\section AlCaPhiSymmetry_test_sec How to test the code on the AlCaPhiSymmetry stream files
+
+Testing file:
+\verbatim
+file=root://eoscms//eos/cms/store/data/Run2015A/AlCaPhiSym/RAW/v1/000/246/908/00000/C0DA4527-2F0A-E511-ADFD-02163E014349.root
+cmsRun test/ecalTimeTreeMaker_FromRaw_CosmicOrBeamSplash_cfg.py files=root://eoscms/$file
+\endverbatim
+
+The code is in debug mode that have to be switched off
+*/

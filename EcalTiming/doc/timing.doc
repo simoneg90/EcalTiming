@@ -1,0 +1,22 @@
+/**
+ \mainpage 
+
+\ref instructions_
+
+ \section introduction_ Timing package
+
+ This package can be used to analyze 
+  - splash event data in RAW format
+  - data from AlCaPhiSymmetry stream: \ref AlCaPhiSymmetry_test_sec
+
+
+If you want to see a preview of the documentation:
+\verbatim
+cd EcalTiming/EcalTiming/
+doxygen fulldoc
+firefox doc/doxygen/fulldoc/html/index.html
+\endverbatim
+
+
+
+*/

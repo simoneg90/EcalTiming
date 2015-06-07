@@ -34,8 +34,11 @@ git branch
 git pull
 git add *.html
 git add *.css *.js
-git add *.gif *.png
-git add searchb
+git add *.gif 
+git add *.png
+git add *.map
+git add *.md5
+git add search
 git commit -m "updated documentation" -a
 git commit -m "updated documentation" -a
 git push origin gh-pages:gh-pages
