@@ -71,8 +71,8 @@
 #include "CondFormats/EcalObjects/interface/EcalTimeCalibErrors.h"
 #include "CondFormats/EcalObjects/interface/EcalTimeOffsetConstant.h"
 
-#include "CalibCalorimetry/EcalTiming/interface/EcalTimingEvent.h"
-#include "CalibCalorimetry/EcalTiming/interface/EcalCrystalTimingCalibration.h"
+#include "EcalTiming/EcalTiming/interface/EcalTimingEvent.h"
+#include "EcalTiming/EcalTiming/interface/EcalCrystalTimingCalibration.h"
 
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
