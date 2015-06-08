@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
+#include "DataFormats/EcalDetId/interface/EcalDetIdCollections.h"
 
 /** \class EcalTimingEvent EcalTiming.cc EcalTiming.cc
  *

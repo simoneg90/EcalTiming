@@ -1,9 +1,9 @@
 // -*- C++ -*-
 //
-// Package:    CalibCalorimetry/EcalTimingCalibProducer
+// Package:    EcalTiming/EcalTimingCalibProducer
 // Class:      EcalTimingCalibProducer
 //
-/** \class EcalTimingCalibProducer EcalTimingCalibProducer.cc CalibCalorimetry/EcalTiming/plugins/EcalTimingCalibProducer.cc
+/** \class EcalTimingCalibProducer EcalTimingCalibProducer.cc EcalTiming/EcalTiming/plugins/EcalTimingCalibProducer.cc
 
  Description: Calculate ecal timing intercalibration
 

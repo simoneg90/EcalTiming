@@ -25,6 +25,3 @@
 <use   name="root"/>
 <lib   name="Minuit"/>
 <use   name="clhep"/>
-<export>
-  <lib   name="1"/>
-</export>

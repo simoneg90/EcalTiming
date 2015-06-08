@@ -31,9 +31,9 @@ total_number_of_lumis=-1
 #number_of_jobs=1
 
 [USER]
-ui_working_dir=/afs/cern.ch/user/s/shervin/scratch1/CMSSW_7_3_4/src/CalibCalorimetry/EcalTiming/test/run-${RUN}
+ui_working_dir=/afs/cern.ch/user/s/shervin/scratch1/CMSSW_7_3_4/src/EcalTiming/EcalTiming/test/run-${RUN}
 return_data=1
-#outputdir=/afs/cern.ch/user/s/shervin/scratch1/CMSSW_7_3_4/src/CalibCalorimetry/EcalTiming/test/run-${RUN}/output
+#outputdir=/afs/cern.ch/user/s/shervin/scratch1/CMSSW_7_3_4/src/EcalTiming/EcalTiming/test/run-${RUN}/output
 check_user_remote_dir=1
 
 [CAF]

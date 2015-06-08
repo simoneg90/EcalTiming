@@ -1,4 +1,4 @@
-#include "CalibCalorimetry/EcalTiming/interface/EcalTimingEvent.h"
+#include "EcalTiming/EcalTiming/interface/EcalTimingEvent.h"
 
 #include <vector>
 
