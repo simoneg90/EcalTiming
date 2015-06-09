@@ -25,7 +25,7 @@ options.register('isSplash',
 ### setup any defaults you want
 options.output="ecalTiming.root"
 options.secondaryOutput="ntuple.root"
-options.files= ""
+options.files= "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
 options.maxEvents = -1 # -1 means all events
 ### get and parse the command line arguments
 options.parseArguments()
@@ -57,10 +57,11 @@ else:
     process.load('Configuration/StandardSequences/Reconstruction_cff')
     process.recoSequence = cms.Sequence(process.calolocalreco )#+ process.egammaCosmics)
 
-process.load('PhiSym.EcalCalibAlgos.ecalPhiSymLocarecoWeights_cff')
+#process.load('PhiSym.EcalCalibAlgos.ecalPhiSymLocarecoWeights_cff')
+#process.load('RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-
+process.load('EcalTiming.EcalTiming.ecalLocalRecoSequenceAlCaStream_cff')
 
 ## Raw to Digi
 process.load('Configuration/StandardSequences/RawToDigi_Data_cff')
@@ -169,7 +170,8 @@ if(options.isSplash==1):
     process.filter+=process.spashesHltFilter
     process.reco_step = cms.Sequence(process.caloCosmicOrSplashRECOSequence)
 else:
-    process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+    #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+    process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
 
 ### Process Full Path
 if(options.isSplash==0):
@@ -194,7 +196,7 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
                             recHitMinimumN = cms.uint32(10),
                             #recHitMinimumN = cms.uint32(2),
-                            minRecHitEnergy = cms.double(1),
+                            minRecHitEnergy = cms.double(0),
                             globalOffset = cms.double(options.offset),
                             produceNewCalib = cms.bool(True),
                             outputDumpFile = process.TFileService.fileName,

@@ -418,8 +418,10 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 
 void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 {
+        std::cout<<"I'm in PlotrecHit"<<std::endl;
 	if(recHit.detid().subdetId() == EcalBarrel) {
 		EBDetId id(recHit.detid());
+                std::cout<<"filling histos for rechit: "<<id.ieta()<<std::endl;
 		// Fill Rechit Energy
 		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), recHit.energy()); // 2D energy map
 		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), recHit.time()); // 2D time map
@@ -427,6 +429,7 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 	} else {
 		// create EEDetId
 		EEDetId id(recHit.detid());
+                std::cout<<"filling histos for rechit: "<<id.ix()<<std::endl;
 		if(id.zside() < 0) {
 			Event_EneMapEEM_->Fill(id.ix(), id.iy(), recHit.energy());
 			Event_TimeMapEEM_->Fill(id.ix(), id.iy(), recHit.time());
@@ -488,6 +491,8 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
+        //std::cout<<"EB recHit handle: "<<ebRecHitHandle->size()<<std::endl;
+        //std::cout<<"EE recHit handle: "<<eeRecHitHandle->size()<<std::endl;
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
 		addRecHit(*recHit_itr); // add the recHit to the list of recHits used for calibration (with the relative information)
 	}
@@ -534,7 +539,8 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 			continue;
 		}
 
-		if(_makeEventPlots) plotRecHit(event);
+		plotRecHit(event);
+		//if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
 	}
 
