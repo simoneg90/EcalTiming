@@ -3,8 +3,18 @@ import os, sys, imp, re
 import FWCore.ParameterSet.VarParsing as VarParsing
 
 #sys.path(".")
+
+#new options to make everything easier for batch
+from optparse import OptionParser
+parser=OptionParser()
+parser.add_option("-i","--inputFile")
+parser.add_option("-o","--outputFile")
+
+(opts,args)=parser.parse_args()
+
 ############################################################
 ### SETUP OPTIONS
+
 options = VarParsing.VarParsing('standard')
 options.register('jsonFile',
                  "",
@@ -24,8 +34,9 @@ options.register('isSplash',
                  )
 ### setup any defaults you want
 streamName = "AlCaPhiSym"
-options.output="ecalTiming.root"
+options.output="output/ecalTiming.root"
 options.secondaryOutput="ntuple.root"
+
 if(streamName=="AlCaP0"): options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
 elif(streamName=="AlCaPhiSym"): options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
 else: 
@@ -73,8 +84,8 @@ if(streamName=="AlCaP0"):
     process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltAlCaPi0EBRechitsToDigis","pi0EBDigis")
     process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltAlCaPi0EERechitsToDigis","pi0EEDigis")
 else:
-    process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("HLTEcalPhiSymFilter","phiSymEcalDigisEB")
-    process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("HLTEcalPhiSymFilter","phiSymEcalDigisEE")
+    process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEB")
+    process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEE")
 
 
 ## Raw to Digi
