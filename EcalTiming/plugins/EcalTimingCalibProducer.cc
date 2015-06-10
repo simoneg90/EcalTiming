@@ -145,7 +145,8 @@ private:
 	edm::InputTag _ecalRecHitsEETAG;
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 	unsigned int _recHitMin; ///< require at least this many rec hits to count the event
-	float        _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
+	double       _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
+        unsigned int _minEntries; ///< require a minimum number of entries in a ring to do averages
 	float        _globalOffset;    ///< time to subtract from every event
 	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
 	std::string _outputDumpFileName; ///< name of the output file for the calibration constants' dump
@@ -298,7 +299,8 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
-	_minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
+        _minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
+        _minEntries(iConfig.getParameter<unsigned int>("minEntries")),
 	_globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
 	_outputDumpFileName(iConfig.getParameter<std::string>("outputDumpFile")),
@@ -418,10 +420,8 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 
 void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 {
-        std::cout<<"I'm in PlotrecHit"<<std::endl;
 	if(recHit.detid().subdetId() == EcalBarrel) {
 		EBDetId id(recHit.detid());
-                std::cout<<"filling histos for rechit: "<<id.ieta()<<std::endl;
 		// Fill Rechit Energy
 		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), recHit.energy()); // 2D energy map
 		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), recHit.time()); // 2D time map
@@ -429,7 +429,6 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 	} else {
 		// create EEDetId
 		EEDetId id(recHit.detid());
-                std::cout<<"filling histos for rechit: "<<id.ix()<<std::endl;
 		if(id.zside() < 0) {
 			Event_EneMapEEM_->Fill(id.ix(), id.iy(), recHit.energy());
 			Event_TimeMapEEM_->Fill(id.ix(), id.iy(), recHit.time());
@@ -510,9 +509,10 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 #endif
 	// If we got less than the minimum recHits, continue
 	if(eventTimeMap_.size() < _recHitMin) return kContinue;
-	if(timeEB.num() < 4) return kContinue;
-	if(timeEEM.num() < 4 && timeEEP.num() < 4) return kContinue;
+	if(timeEB.num() + timeEEM.num() + timeEEP.num() < _minEntries) return kContinue;
+#ifdef DEBUG
 	std::cout << "[DUMP]\t" << timeEB << "\t"  << timeEEM << "\t" << timeEEP << std::endl;
+#endif
 	// Make a new directory for Histograms for each event
 	char eventDirName[100];
 	if(_makeEventPlots) {
@@ -539,8 +539,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 			continue;
 		}
 
-		plotRecHit(event);
-		//if(_makeEventPlots) plotRecHit(event);
+		if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
 	}
 
