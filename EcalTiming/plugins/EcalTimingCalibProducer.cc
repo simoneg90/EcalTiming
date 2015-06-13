@@ -365,7 +365,7 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 {
 	std::cout << "Starting new loop: " << iIteration << std::endl;
         ofstream inFile;
-        inFile.open("loop.txt");
+        inFile.open("/afs/cern.ch/work/s/sgelli/public/CMSSW_7_4_4_patch4/src/EcalTiming/EcalTiming/test/loop.txt");
         inFile<<iIteration;
 #ifdef DEBUG
 	auto calib2_itr = _calibConstants->find(RAWIDCRY); //begin();
@@ -392,7 +392,7 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 {
         ifstream inFile;
-        inFile.open("loop.txt");
+        inFile.open("/afs/cern.ch/work/s/sgelli/public/CMSSW_7_4_4_patch4/src/EcalTiming/EcalTiming/test/loop.txt");
         int iter;
         inFile>>iter;
         //std::cout<<"Threshold: "<<_minRecHitEnergy+(0.5*iter)<<std::endl;
