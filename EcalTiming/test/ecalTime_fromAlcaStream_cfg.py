@@ -5,12 +5,6 @@ import FWCore.ParameterSet.VarParsing as VarParsing
 #sys.path(".")
 
 #new options to make everything easier for batch
-from optparse import OptionParser
-parser=OptionParser()
-parser.add_option("-i","--inputFile")
-parser.add_option("-o","--outputFile")
-
-(opts,args)=parser.parse_args()
 
 ############################################################
 ### SETUP OPTIONS
@@ -32,13 +26,18 @@ options.register('isSplash',
                  VarParsing.VarParsing.varType.int,
                  "0=false, 1=true"
                  )
+options.register('streamName',
+                 'AlCaPhiSym',
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.string,
+                 "type of stream: AlCaPhiSym or AlCaP0")
+                 
 ### setup any defaults you want
-streamName = "AlCaPhiSym"
 options.output="output/ecalTiming.root"
 options.secondaryOutput="ntuple.root"
 
-if(streamName=="AlCaP0"): options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
-elif(streamName=="AlCaPhiSym"): options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
+if(options.streamName=="AlCaP0"): options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
+elif(options.streamName=="AlCaPhiSym"): options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
 else: 
     print "stream ",streamName," not foreseen"
     exit
