@@ -82,8 +82,10 @@
 #include "TGraph.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TFile.h"
 #include "TProfile2D.h"
 
+#include <fstream>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -145,7 +147,8 @@ private:
 	edm::InputTag _ecalRecHitsEETAG;
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 	unsigned int _recHitMin; ///< require at least this many rec hits to count the event
-	float        _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
+	double       _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
+        unsigned int _minEntries; ///< require a minimum number of entries in a ring to do averages
 	float        _globalOffset;    ///< time to subtract from every event
 	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
 	std::string _outputDumpFileName; ///< name of the output file for the calibration constants' dump
@@ -298,7 +301,8 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
-	_minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
+        _minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
+        _minEntries(iConfig.getParameter<unsigned int>("minEntries")),
 	_globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
 	_outputDumpFileName(iConfig.getParameter<std::string>("outputDumpFile")),
@@ -360,6 +364,9 @@ void EcalTimingCalibProducer::beginOfJob(const edm::EventSetup& iSetup)
 void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 {
 	std::cout << "Starting new loop: " << iIteration << std::endl;
+        ofstream inFile;
+        inFile.open("/afs/cern.ch/work/s/sgelli/public/CMSSW_7_4_4_patch4/src/EcalTiming/EcalTiming/test/loop.txt");
+        inFile<<iIteration;
 #ifdef DEBUG
 	auto calib2_itr = _calibConstants->find(RAWIDCRY); //begin();
 	std::cout << "index\tcalibConstants\ttimeCalibConstants\n"
@@ -384,10 +391,15 @@ void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
 
 bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 {
+        ifstream inFile;
+        inFile.open("/afs/cern.ch/work/s/sgelli/public/CMSSW_7_4_4_patch4/src/EcalTiming/EcalTiming/test/loop.txt");
+        int iter;
+        inFile>>iter;
+        //std::cout<<"Threshold: "<<_minRecHitEnergy+(0.5*iter)<<std::endl;
 	//check if rechit is valid
 	if(! recHit.checkFlags(_recHitFlags)) return false;
-	if( recHit.energy() < _minRecHitEnergy) return false;
-	if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * _minRecHitEnergy) return false;
+	if( recHit.energy() < (_minRecHitEnergy+0.5*iter)) return false; //cambiato!!!
+	if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * (_minRecHitEnergy+0.5*iter)) return false;
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 	EcalTimingEvent timeEvent(recHit);
@@ -488,6 +500,8 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 	// loop over the recHits
 	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
+        //std::cout<<"EB recHit handle: "<<ebRecHitHandle->size()<<std::endl;
+        //std::cout<<"EE recHit handle: "<<eeRecHitHandle->size()<<std::endl;
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
 		addRecHit(*recHit_itr); // add the recHit to the list of recHits used for calibration (with the relative information)
 	}
@@ -505,9 +519,10 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 #endif
 	// If we got less than the minimum recHits, continue
 	if(eventTimeMap_.size() < _recHitMin) return kContinue;
-	if(timeEB.num() < 4) return kContinue;
-	if(timeEEM.num() < 4 && timeEEP.num() < 4) return kContinue;
+	if(timeEB.num() + timeEEM.num() + timeEEP.num() < _minEntries) return kContinue;
+#ifdef DEBUG
 	std::cout << "[DUMP]\t" << timeEB << "\t"  << timeEEM << "\t" << timeEEP << std::endl;
+#endif
 	// Make a new directory for Histograms for each event
 	char eventDirName[100];
 	if(_makeEventPlots) {
