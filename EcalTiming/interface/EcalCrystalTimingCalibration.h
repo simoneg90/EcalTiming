@@ -2,7 +2,7 @@
 
 #include <vector>
 
-/** \class EcalCrystalTimingCalibration EcalCrystalTimingCalibration.cc EcalCrystalTimingCalibration.cc
+/** \class EcalCrystalTimingCalibration EcalCrystalTimingCalibration.h EcalTiming/EcalTiming/interface/EcalCrystalTimingCalibration.h
  *
  * Description: add a description here
  * This class contains all the timing information for a single crystal

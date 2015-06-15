@@ -3,8 +3,12 @@ import os, sys, imp, re
 import FWCore.ParameterSet.VarParsing as VarParsing
 
 #sys.path(".")
+
+#new options to make everything easier for batch
+
 ############################################################
 ### SETUP OPTIONS
+
 options = VarParsing.VarParsing('standard')
 options.register('jsonFile',
                  "",
@@ -22,10 +26,21 @@ options.register('isSplash',
                  VarParsing.VarParsing.varType.int,
                  "0=false, 1=true"
                  )
+options.register('streamName',
+                 'AlCaPhiSym',
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.string,
+                 "type of stream: AlCaPhiSym or AlCaP0")
+                 
 ### setup any defaults you want
-options.output="ecalTiming.root"
+options.output="output/ecalTiming.root"
 options.secondaryOutput="ntuple.root"
-options.files= ""
+
+if(options.streamName=="AlCaP0"): options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
+elif(options.streamName=="AlCaPhiSym"): options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
+else: 
+    print "stream ",options.streamName," not foreseen"
+    exit
 options.maxEvents = -1 # -1 means all events
 ### get and parse the command line arguments
 options.parseArguments()
@@ -57,9 +72,18 @@ else:
     process.load('Configuration/StandardSequences/Reconstruction_cff')
     process.recoSequence = cms.Sequence(process.calolocalreco )#+ process.egammaCosmics)
 
-process.load('PhiSym.EcalCalibAlgos.ecalPhiSymLocarecoWeights_cff')
+#process.load('PhiSym.EcalCalibAlgos.ecalPhiSymLocarecoWeights_cff')
+#process.load('RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+process.load('EcalTiming.EcalTiming.ecalLocalRecoSequenceAlCaStream_cff')
+
+if(options.streamName=="AlCaP0"):
+    process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltAlCaPi0EBRechitsToDigis","pi0EBDigis")
+    process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltAlCaPi0EERechitsToDigis","pi0EEDigis")
+else:
+    process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEB")
+    process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEE")
 
 
 ## Raw to Digi
@@ -169,7 +193,8 @@ if(options.isSplash==1):
     process.filter+=process.spashesHltFilter
     process.reco_step = cms.Sequence(process.caloCosmicOrSplashRECOSequence)
 else:
-    process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+    #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+    process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
 
 ### Process Full Path
 if(options.isSplash==0):
@@ -185,22 +210,10 @@ process.endp = cms.EndPath(process.RECOoutput)
 ### Schedule ###
 process.schedule = cms.Schedule(process.p) # , process.endp) 
 
-process.looper = cms.Looper("EcalTimingCalibProducer",
-                            maxLoop = cms.uint32(2),
-                            isSplash = cms.bool(True if options.isSplash == 1 else  False),
-                            makeEventPlots = cms.bool(True),
-                            recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
-                            recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
-                            recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
-                            recHitMinimumN = cms.uint32(10),
-                            #recHitMinimumN = cms.uint32(2),
-                            minRecHitEnergy = cms.double(1),
-                            globalOffset = cms.double(options.offset),
-                            produceNewCalib = cms.bool(True),
-                            outputDumpFile = process.TFileService.fileName,
-                            noiseRMSThreshold = cms.double(0.5),
-                            noiseTimeThreshold = cms.double(2.0)
-                            )
+evtPlots = True if options.isSplash else False
+
+#ESLooperProducer looper is imported here:
+process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
 
 processDumpFile = open('processDump.py', 'w')
 print >> processDumpFile, process.dumpPython()

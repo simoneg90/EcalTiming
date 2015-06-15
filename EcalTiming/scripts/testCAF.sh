@@ -1,18 +1,26 @@
 RUNLIST="243479 243484 243506"
+RUNLIST=`cat runlist`
+STREAM=AlCaPhiSym
+
 for RUN in ${RUNLIST}
 do
 
 echo "=== RUN = ${RUN}"
-filelist=`das_client.py --query="file dataset=/MinimumBias/Commissioning2015-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
-for file in ${filelist}
-do
-das_client.py --query="file=${file} | sum(file.nevents)"
-done
+OUTDIR=output/${STREAM}-${RUN}/
+mkdir -p ${OUTDIR}
+#filelist=`das_client.py --query="file dataset=/MinimumBias/Commissioning2015-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
+filelist=`das_client.py --query="file dataset=/AlCaPhiSym/Run2015A-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
+# for file in ${filelist}
+# do
+# das_client.py --query="file=${file} | sum(file.nevents)"
+# done
+
 filelist=`echo ${filelist}| sed 's| |,|g;s|,$||'`
 echo ${filelist}
 
-bsub -q 1nd "cd $PWD; eval \`scramv1 runtime -sh\`; cmsRun python/ecalTimeTreeMaker_FromRaw_CosmicOrBeamSplash_cfg.py files=${filelist} output=ecalTiming-${RUN}.root maxEvents=-1"
+bsub -oo ${OUTDIR}/stdout.log -eo ${OUTDIR}/stderr.log -q 1nd "cd $PWD; eval \`scramv1 runtime -sh\`; cmsRun test/ecalTime_fromAlcaStream_cfg.py files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}.root maxEvents=-1" || exit 1
 
+done
 exit 0
 cat > test/run-${RUN}.cfg <<EOF
 [CRAB]
