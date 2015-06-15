@@ -39,7 +39,7 @@ options.secondaryOutput="ntuple.root"
 if(options.streamName=="AlCaP0"): options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
 elif(options.streamName=="AlCaPhiSym"): options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
 else: 
-    print "stream ",streamName," not foreseen"
+    print "stream ",options.streamName," not foreseen"
     exit
 options.maxEvents = -1 # -1 means all events
 ### get and parse the command line arguments
@@ -79,7 +79,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 process.load('EcalTiming.EcalTiming.ecalLocalRecoSequenceAlCaStream_cff')
 
-if(streamName=="AlCaP0"):
+if(options.streamName=="AlCaP0"):
     process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltAlCaPi0EBRechitsToDigis","pi0EBDigis")
     process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltAlCaPi0EERechitsToDigis","pi0EEDigis")
 else:

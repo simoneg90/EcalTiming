@@ -249,7 +249,6 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 #endif
 	// If we got less than the minimum recHits, continue
 	if(_eventTimeMap.size() < _recHitMin) return kContinue;
-	if(timeEB.num() + timeEEM.num() + timeEEP.num() < _minEntries) return kContinue; ///\todo remove this line, it is equivalent to the previous
 #ifdef DEBUG
 	std::cout << "[DUMP]\t" << timeEB << "\t"  << timeEEM << "\t" << timeEEP << std::endl;
 #endif
