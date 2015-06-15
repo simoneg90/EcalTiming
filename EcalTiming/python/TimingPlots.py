@@ -1,5 +1,5 @@
 import ROOT
-from CalibCalorimetry.EcalTiming.PlotUtils import customROOTstyle
+from EcalTiming.EcalTiming.PlotUtils import customROOTstyle
 
 def saveEventTimingPlots(eventdir):
 	customROOTstyle()

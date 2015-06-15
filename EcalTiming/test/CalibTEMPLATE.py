@@ -13,9 +13,9 @@ process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
 process.load("Geometry.CMSCommonData.cmsIdealGeometryXML_cfi")
 
-process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cfi")
+process.load("EcalTiming.EcalLaserCorrection.ecalLaserCorrectionService_cfi")
 
-process.load("CalibCalorimetry.EcalTrivialCondModules.EcalTrivialCondRetriever_cfi")
+process.load("EcalTiming.EcalTrivialCondModules.EcalTrivialCondRetriever_cfi")
 
 import RecoLocalCalo.EcalRecProducers.ecalFixedAlphaBetaFitUncalibRecHit_cfi
 process.ecalUncalibHit = RecoLocalCalo.EcalRecProducers.ecalFixedAlphaBetaFitUncalibRecHit_cfi.ecalFixedAlphaBetaFitUncalibRecHit.clone()

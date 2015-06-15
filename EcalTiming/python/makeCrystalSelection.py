@@ -72,7 +72,7 @@ for crystal in beam1:
 
 print len(beam1), len(beam2), len(oldcalib)
 
-from CalibCalorimetry.EcalTiming.calibrationXML import CalibrationXML
+from EcalTiming.EcalTiming.calibrationXML import CalibrationXML
 
 cal = CalibrationXML()
 
@@ -89,7 +89,7 @@ cal.writeConstant("const.xml")
 cal.writeErrors("error.xml")
 
 import ROOT
-from CalibCalorimetry.EcalTiming.PlotUtils import drawMultipleGrid,customROOTstyle
+from EcalTiming.EcalTiming.PlotUtils import drawMultipleGrid,customROOTstyle
 customROOTstyle()
 
 def plotCalibration(crystals,histoname):

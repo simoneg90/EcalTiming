@@ -19,7 +19,7 @@ process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 process.load("Geometry.EcalCommonData.EcalOnly_cfi")
 process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
-process.load("CalibCalorimetry.EcalTrivialCondModules.EcalTrivialCondRetriever_cfi")
+process.load("EcalTiming.EcalTrivialCondModules.EcalTrivialCondRetriever_cfi")
 
 
 process.createAvgs = cms.EDAnalyzer('EcalCreateTTAvgTimes',

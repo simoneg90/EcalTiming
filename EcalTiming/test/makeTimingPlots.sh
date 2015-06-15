@@ -96,7 +96,7 @@ echo 'Making Laser Webpages for ' ${run_num}
 #my_cmssw_base='/afs/cern.ch/cms/CAF/CMSCOMM/COMM_ECAL/ccecal/CRAFT_devel_321/src'
 my_cmssw_base=$CMSSW_BASE/src
 work_dir=/castor/cern.ch/user/c/ccecal/Timing
-dwork_dir=${my_cmssw_base}/'CalibCalorimetry/EcalTiming/test'
+dwork_dir=${my_cmssw_base}/'EcalTiming/EcalTiming/test'
 Nrun_num=${run_num}${APPENDIX}
 
 cd $dwork_dir;
@@ -120,7 +120,7 @@ rfcp ${work_dir}/${root_file} ${plots_dir}/${Nroot_file}
 echo
 echo 'Going to make the plots, by running:'
 echo  'EcalTimingTTreePlotter '${plots_dir}'/'${Nroot_file}' '${Nrun_num}' 1 png '${plots_dir}' 0 '${analy_type}' '${plot_file}' '$OPTIONS' > '${plots_dir}'/plotting.txt'
-#echo '.L '${my_cmssw_base}'/CalibCalorimetry/EcalTiming/test/plotLaser.C'
+#echo '.L '${my_cmssw_base}'/EcalTiming/EcalTiming/test/plotLaser.C'
 #echo 'DrawLaserPlots("'${plots_dir}'/'${Nroot_file}'","'${Nrun_num}'",kTRUE,"png","'${plots_dir}'",kFALSE,"${analy_type}","'${plot_file}'")'
 echo
 
@@ -140,9 +140,9 @@ EcalTimingTTreePlotter ${plots_dir}/${Nroot_file} ${Nrun_num} 1 png ${plots_dir}
 #######AutoLibraryLoader.enable();
 #######gSystem.Load('libDataFormatsFWLite.so')
 #######gSystem.Load('libDataFormatsPatCandidates.so')
-#######gROOT.LoadMacro(  '${my_cmssw_base}/CalibCalorimetry/EcalTiming/test/plotLaser.C++')
+#######gROOT.LoadMacro(  '${my_cmssw_base}/EcalTiming/EcalTiming/test/plotLaser.C++')
 #gSystem.Load('plotLaser_C.so')
-#gROOT.ProcessLine(  '.L ${my_cmssw_base}/CalibCalorimetry/EcalTiming/test/plotLaser.C++')
+#gROOT.ProcessLine(  '.L ${my_cmssw_base}/EcalTiming/EcalTiming/test/plotLaser.C++')
 
 #get my cute class
 #######from ROOT import DrawLaserPlots
