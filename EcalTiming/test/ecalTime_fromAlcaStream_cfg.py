@@ -58,7 +58,6 @@ process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 
-
 if(options.isSplash==1):
     ## Get Cosmic Reconstruction
     process.load('Configuration/StandardSequences/ReconstructionCosmics_cff')
@@ -212,23 +211,9 @@ process.endp = cms.EndPath(process.RECOoutput)
 process.schedule = cms.Schedule(process.p) # , process.endp) 
 
 evtPlots = True if options.isSplash else False
-process.looper = cms.Looper("EcalTimingCalibProducer",
-                            maxLoop = cms.uint32(2),
-                            isSplash = cms.bool(True if options.isSplash == 1 else  False),
-                            makeEventPlots = cms.bool(evtPlots),
-                            recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
-                            recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
-                            recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
-                            #recHitMinimumN = cms.uint32(10),
-                            recHitMinimumN = cms.uint32(2),
-                            minRecHitEnergy = cms.double(1),
-                            minEntries = cms.uint32(1),
-                            globalOffset = cms.double(options.offset),
-                            produceNewCalib = cms.bool(True),
-                            outputDumpFile = process.TFileService.fileName,
-                            noiseRMSThreshold = cms.double(0.5),
-                            noiseTimeThreshold = cms.double(2.0)
-                            )
+
+#ESLooperProducer looper is imported here:
+process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
 
 processDumpFile = open('processDump.py', 'w')
 print >> processDumpFile, process.dumpPython()

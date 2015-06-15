@@ -39,7 +39,7 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
         _minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
-	_minRecHitEnergyStep(iConfig.getParameter<double>("minRecHitEnergyStep",0.5)),
+	_minRecHitEnergyStep(iConfig.getParameter<double>("minRecHitEnergyStep")),
         _minEntries(iConfig.getParameter<unsigned int>("minEntries")),
 	_globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
