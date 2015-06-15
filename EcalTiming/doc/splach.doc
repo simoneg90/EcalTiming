@@ -7,8 +7,8 @@ The offset are set to make the ieta = 1 bin average to 0.
 output=/path/to/output.root
 beam1file=/store/caf/user/ccecal/TPG/splash_events_run_239895_26_events_beam_1.root
 beam2file=/store/caf/user/ccecal/TPG/splash_events_run_239895_31_events_beam_2.root
-cmsRun test/ecalTimeTreeMaker_FromRaw_CosmicOrBeamSplash_cfg.py files=$beam1file output=$output offset=1.75589609219   isSplash=1
-cmsRun test/ecalTimeTreeMaker_FromRaw_CosmicOrBeamSplash_cfg.py files=$beam2file output=$output offset=-0.709605624194 isSplash=1
+cmsRun test/ ecalTime_fromAlcaStream_cfg.py files=$beam1file output=$output offset=1.75589609219   isSplash=1
+cmsRun test/ ecalTime_fromAlcaStream_cfg.py files=$beam2file output=$output offset=-0.709605624194 isSplash=1
 \endverbatim
 
 */
