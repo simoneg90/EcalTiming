@@ -1,5 +1,6 @@
 #include "EcalTiming/EcalTiming/interface/EcalTimingEvent.h"
 #include <vector>
+#include <TTree.h>
 
 /** \class EcalCrystalTimingCalibration EcalCrystalTimingCalibration.h EcalTiming/EcalTiming/interface/EcalCrystalTimingCalibration.h
  *
@@ -22,8 +23,8 @@ private:
 
 	float _sumE; ///< scalar sum of the energy of each timingEvent: needed for average energy
 
-	std::map<float> _sumWithinNSigma, _sum2WithinNSigma, _sum3WithinNSigma, _sumEWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
-	std::map<unsigned int> _numWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
+	std::map<float, float> _sumWithinNSigma, _sum2WithinNSigma, _sum3WithinNSigma, _sumEWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
+	std::map<float, unsigned int> _numWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
 
 	std::vector<EcalTimingEvent> timingEvents; ///< vector containing  all the events for this crystal
 	std::vector<EcalTimingEvent>::iterator maxChi2Itr;
@@ -67,9 +68,9 @@ public:
 	/* } */
 	//float totalChi2;
 
-	float getMeanWithinNSigma(float sigma); ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
-	float getStdDevWithinNSigma(float sigma); ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
-	float getSkewnessWithinNSigma(float sigma); ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
+	float getMeanWithinNSigma(float sigma, float maxRange); ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
+	float getStdDevWithinNSigma(float sigma, float maxRange); ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
+	float getSkewnessWithinNSigma(float sigma, float maxRange); ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
 
 	friend std::ostream& operator<< (std::ostream& os, const EcalCrystalTimingCalibration& s)
 	{
@@ -105,13 +106,13 @@ public:
 
 >>>>>>> 110b5e4... added TTrees for debug not energy stable channels, and high skewness channels
 private:
-	float calcAllWithinNSigma(float n_sigma); ///< calculate sum, sum2, sum3, n for time if time within n x stdDev and store the result
+	void calcAllWithinNSigma(float n_sigma, float maxRange = 10); ///< calculate sum, sum2, sum3, n for time if time within n x stdDev and store the result
 	// since the values are stored, the calculation is done only once with only one loop over the events
 
 	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_)
 	{
-		if(te_.timeError() > 0 && te_.timeError < 1000 && te_.timeError<3) { //exclude values with wrong timeError estimation
+		if(te_.timeError() > 0 && te_.timeError() < 1000 && te_.timeError() < 3) { //exclude values with wrong timeError estimation
 			_sum += te_.time();
 			_sum2 += te_.time() * te_.time();
 			_sumE += te_.energy();
