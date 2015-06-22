@@ -98,6 +98,10 @@ void EcalTimingCalibProducer::beginOfJob(const edm::EventSetup& iSetup)
 	endcapGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
 	barrelGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
 
+	edm::ESHandle<EcalElectronicsMapping> hElecMap;
+	iSetup.get<EcalMappingRcd>().get(hElecMap);
+	elecMap_ = hElecMap.product();
+
 }
 
 // ------------ method called at the beginning of a new loop over the event  ------------
@@ -305,6 +309,12 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 		if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
+
+		//Find the CCU(tower) that this crystal belongs to
+		EcalElectronicsId elecId( elecMap_->getElectronicsId(it.first));
+		EcalElectronicsId key(elecId.dccId(), elecId.towerId(), 1, 1);;
+		_HWCalibrationMap[key].add(event);
+
 	}
 
 #ifdef DEBUG
@@ -329,9 +339,15 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 	// set the values in _calibConstants, _calibErrors, _offsetConstant
 
+#ifdef DEBUG
+	for (auto it : _HWCalibrationMap)
+	{
+		if	(abs(it.second.mean()) > HW_UNIT) std::cout <<  "HW: " << it.first << ' ' << it.second.mean() << std::endl;
+	}
+#endif
+
 	// remove the entries OOT (time > n_sigma)
 	float n_sigma = 2.; /// \todo remove hard coded number
-
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
 		FillCalibrationCorrectionHists(calibRecHit_itr); // histograms with shifts to be corrected at each step
 		float correction =  - calibRecHit_itr->second.getMeanWithinNSigma(n_sigma, 10);  // to reject tails

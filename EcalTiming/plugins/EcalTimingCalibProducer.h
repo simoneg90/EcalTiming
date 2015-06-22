@@ -9,7 +9,6 @@
 
 */
 
-
 /**
    Module description:
  - digi to calibrated recHit reconstruction
@@ -42,6 +41,7 @@
 #define EEpRING 20
 
 #define SPEEDOFLIGHT 30.0 // (cm/ns)
+#define HW_UNIT 1.1 //(ns)
 
 // system include files
 #include <memory>
@@ -76,6 +76,8 @@
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
 
 // record to be produced:
 #include "CondFormats/DataRecord/interface/EcalTimeCalibConstantsRcd.h"
@@ -128,6 +130,8 @@ class EcalTimingCalibProducer : public edm::ESProducerLooper
 private:
 	EcalTimeCalibrationMap _timeCalibMap; ///< calibration map: contains the time shift for each crystal
 	EventTimeMap _eventTimeMap;           ///< container of recHits passing selection in the event (reset at each event)
+	EcalHWCalibrationMap _HWCalibrationMap; //!<  The keys for this map are EcalElectronicIds with xtalid = stripid = 1
+	  														///< calibration map for the CCU's (Hardware Constants). 
 
 	// For finding averages for specific eta ring
 	EcalCrystalTimingCalibration timeEEP; ///< global time calibration of EE+
@@ -315,6 +319,8 @@ private:
 	EcalRingCalibrationTools _ringTools;
 	const CaloSubdetectorGeometry * endcapGeometry_;
 	const CaloSubdetectorGeometry * barrelGeometry_;
+
+   const EcalElectronicsMapping * elecMap_;
 
 	std::vector<int> _noisyXtals;
 	std::vector<TH1F*> _noisyXtalsHists;
