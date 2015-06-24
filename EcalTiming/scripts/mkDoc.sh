@@ -38,6 +38,7 @@ git add *.gif
 git add *.png
 git add *.map
 git add *.md5
+git add *.dot
 git add search
 git commit -m "updated documentation" -a
 git commit -m "updated documentation" -a
