@@ -96,15 +96,12 @@ public:
 
 		timingEvents.clear();
 	}
-<<<<<<< HEAD
-=======
 
 	void dumpToTree(TTree *tree, int ix_, int iy_, int iz_); ///< dump the full set of events in a TTree:  need an empty tree
 
 	/// checks if the time measurement is stable changing the min energy threshold
 	bool isStableInEnergy(float min, float max, float step);
 
->>>>>>> 110b5e4... added TTrees for debug not energy stable channels, and high skewness channels
 private:
 	void calcAllWithinNSigma(float n_sigma, float maxRange = 10); ///< calculate sum, sum2, sum3, n for time if time within n x stdDev and store the result
 	// since the values are stored, the calculation is done only once with only one loop over the events
