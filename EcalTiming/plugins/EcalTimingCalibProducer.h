@@ -172,8 +172,6 @@ private:
 	float        _globalOffset;    ///< time to subtract from every event
 	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
 	std::string _outputDumpFileName; ///< name of the output file for the calibration constants' dump
-	float _noiseRMSThreshold;
-	float _noiseTimeThreshold;
 	float _maxSkewnessForDump;
 /// @}
 
@@ -316,8 +314,6 @@ private:
 	const CaloSubdetectorGeometry * endcapGeometry_;
 	const CaloSubdetectorGeometry * barrelGeometry_;
 
-	std::vector<int> _noisyXtals;
-	std::vector<TH1F*> _noisyXtalsHists;
 	unsigned int _iter;
 };
 

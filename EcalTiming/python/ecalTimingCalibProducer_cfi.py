@@ -15,7 +15,5 @@ looper = cms.Looper("EcalTimingCalibProducer",
                     globalOffset = cms.double(0.),
                     produceNewCalib = cms.bool(True),
                     outputDumpFile = cms.string('output.dat'),
-                    noiseRMSThreshold = cms.double(0.5),
-                    noiseTimeThreshold = cms.double(6.0),
                     maxSkewnessForDump = cms.double(2),
                     )
