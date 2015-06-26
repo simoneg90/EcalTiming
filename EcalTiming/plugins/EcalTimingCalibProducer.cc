@@ -350,6 +350,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 	float n_sigma = 2.; /// \todo remove hard coded number
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
 		FillCalibrationCorrectionHists(calibRecHit_itr); // histograms with shifts to be corrected at each step
+		FillHWCorrectionHists(calibRecHit_itr);
 		float correction =  - calibRecHit_itr->second.getMeanWithinNSigma(n_sigma, 10);  // to reject tails
 		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), (*_calibConstants)[calibRecHit_itr->first.rawId()] + correction);
 
@@ -532,6 +533,26 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 
 }
 
+void EcalTimingCalibProducer::FillHWCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr)
+{
+	EcalElectronicsId elecId( elecMap_->getElectronicsId(cal_itr->first));
+	EcalElectronicsId key(elecId.dccId(), elecId.towerId(), 1, 1);;
+	float time = _HWCalibrationMap[key].mean();
+	if(cal_itr->first.subdetId() == EcalBarrel) {
+		EBDetId id(cal_itr->first);
+		// Fill Rechit Energy
+		HWTimeMapEB_->Fill(id.ieta(), id.iphi(), time); // 2D time map
+	} else {
+		// create EEDetId
+		EEDetId id(cal_itr->first);
+		if(id.zside() < 0) {
+			HWTimeMapEEM_->Fill(id.ix(), id.iy(), time);
+		} else {
+			HWTimeMapEEP_->Fill(id.ix(), id.iy(), time);
+		}
+	}
+
+}
 void EcalTimingCalibProducer::initEventHists(TFileDirectory fdir)
 {
 	Event_EneMapEB_   = fdir.make<TProfile2D>("EneMapEB",   "RecHit Energy[GeV] EB map;i#eta; i#phi;E[GeV]", 171, -85, 86, 360, 1., 361.);
@@ -585,6 +606,11 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 			_noisyXtalsHists.push_back(dir.make<TH1F>(name, name, 21, -10, 11));
 		}
 	}
+	// HW Histograms
+	
+	HWTimeMapEEP_ = fdir.make<TProfile2D>("HWTimeMapEEP", "Mean HW Time[ns] profile map EE+;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
+	HWTimeMapEEM_ = fdir.make<TProfile2D>("HWTimeMapEEM", "Mean HW Time[ns] profile map EE-;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
+	HWTimeMapEB_  = fdir.make<TProfile2D>("HWTimeMapEB",  "Mean HW Time[ns] EB profile map; i#eta; i#phi;Time[ns]", 171, -85, 86, 360, 1., 361.);
 }
 
 //

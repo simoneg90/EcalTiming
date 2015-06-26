@@ -187,6 +187,7 @@ private:
 // plotting
 ///fill histograms with the measured shifts (that will become -corrections for the next step)
 	void FillCalibrationCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
+	void FillHWCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
 	void initHists(TFileDirectory dir);
 	void initEventHists(TFileDirectory dir);
 	void initTree(TFileDirectory dir);
@@ -311,6 +312,11 @@ private:
 	TH1F* RechitTimeEEM_;
 	TH1F* RechitEneEEP_;
 	TH1F* RechitTimeEEP_;
+
+	// HW Histograms
+	TProfile2D* HWTimeMapEEP_;
+	TProfile2D* HWTimeMapEEM_;
+	TProfile2D* HWTimeMapEB_;
 
 	TH2F* RechitEnergyTimeEB;
 	TH2F* RechitEnergyTimeEEM;
