@@ -9,7 +9,6 @@
 
 */
 
-
 /**
    Module description:
  - digi to calibrated recHit reconstruction
@@ -42,6 +41,7 @@
 #define EEpRING 20
 
 #define SPEEDOFLIGHT 30.0 // (cm/ns)
+#define HW_UNIT 1.1 //(ns)
 
 // system include files
 #include <memory>
@@ -76,6 +76,8 @@
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
 
 // record to be produced:
 #include "CondFormats/DataRecord/interface/EcalTimeCalibConstantsRcd.h"
@@ -128,6 +130,8 @@ class EcalTimingCalibProducer : public edm::ESProducerLooper
 private:
 	EcalTimeCalibrationMap _timeCalibMap; ///< calibration map: contains the time shift for each crystal
 	EventTimeMap _eventTimeMap;           ///< container of recHits passing selection in the event (reset at each event)
+	EcalHWCalibrationMap _HWCalibrationMap; //!<  The keys for this map are EcalElectronicIds with xtalid = stripid = 1
+	  														///< calibration map for the CCU's (Hardware Constants). 
 
 	// For finding averages for specific eta ring
 	EcalCrystalTimingCalibration timeEEP; ///< global time calibration of EE+
@@ -138,9 +142,6 @@ private:
 	EcalCrystalTimingCalibration timeEEpRing; ///< global time calibration of one EE+ ring
 	EcalCrystalTimingCalibration timeEBCRYex; ///< global time calibration of one EB channel
 	EcalCrystalTimingCalibration timeEECRYex; ///< global time calibration of one EE channel
-
-	float nearEndcapTime;
-	float farEndcapTime;
 
 public:
 	EcalTimingCalibProducer(const edm::ParameterSet&); // default constructor
@@ -181,6 +182,7 @@ private:
 // plotting
 ///fill histograms with the measured shifts (that will become -corrections for the next step)
 	void FillCalibrationCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
+	void FillHWCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
 	void initHists(TFileDirectory dir);
 	void initEventHists(TFileDirectory dir);
 	void initTree(TFileDirectory dir);
@@ -268,8 +270,7 @@ private:
 	edm::Service<TFileService> fileService_;
 	TFileDirectory histDir_;
 	// Tree
-	TTree *timeEBCRYexTree, *timeEECRYexTree, *timeEEpRingTree, *timeEEmRingTree, *timeEBRingTree;
-	TTree *_unstableEnergyTree, *_highSkewnessTree;
+	TTree *dumpTree;
 
 	// Mean Histograms
 	TProfile2D* EneMapEEP_; /// Using TProfile2D so we don't paint empty bins.
@@ -306,6 +307,11 @@ private:
 	TH1F* RechitEneEEP_;
 	TH1F* RechitTimeEEP_;
 
+	// HW Histograms
+	TProfile2D* HWTimeMapEEP_;
+	TProfile2D* HWTimeMapEEM_;
+	TProfile2D* HWTimeMapEB_;
+
 	TH2F* RechitEnergyTimeEB;
 	TH2F* RechitEnergyTimeEEM;
 	TH2F* RechitEnergyTimeEEP;
@@ -313,6 +319,8 @@ private:
 	EcalRingCalibrationTools _ringTools;
 	const CaloSubdetectorGeometry * endcapGeometry_;
 	const CaloSubdetectorGeometry * barrelGeometry_;
+
+   const EcalElectronicsMapping * elecMap_;
 
 	unsigned int _iter;
 };

@@ -8,6 +8,17 @@
  * This class contains all the timing information for a single crystal
  */
 
+//Defines for Dump Status (reason for dumping each crystal
+#define DS_NONE         0x00
+#define DS_HIGH_SKEW    0x01
+#define DS_UNSTABLE_EN  0x02
+#define DS_CCU_OOT      0x04
+#define DS_EB_RING      0x08
+#define DS_EEm_RING     0x10
+#define DS_EEp_RING     0x20
+#define DS_EB_CRYS      0x40
+#define DS_EE_CRYS      0x80
+
 
 class EcalCrystalTimingCalibration
 {
@@ -97,7 +108,7 @@ public:
 		timingEvents.clear();
 	}
 
-	void dumpToTree(TTree *tree, int ix_, int iy_, int iz_); ///< dump the full set of events in a TTree:  need an empty tree
+	void dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_ = 0); ///< dump the full set of events in a TTree:  need an empty tree
 
 	/// checks if the time measurement is stable changing the min energy threshold
 	bool isStableInEnergy(float min, float max, float step);

@@ -85,19 +85,29 @@ bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float 
 
 }
 
-void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int iz_)
+void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_)
 {
 	//assert(tree->GetEntries() == 0);
 	Float_t time, timeError, energy;
-	Int_t ix = ix_, iy = iy_, iz = iz_;
-	if(tree->GetBranch("ix") == NULL) tree->Branch("ix", &ix, "ix/I");
+	UShort_t ix(ix_), iy(iy_); 
+	Char_t iz(iz_);
+	UShort_t elecID(elecID_);
+	UChar_t status(status_);
+
+	if(tree->GetBranch("ix") == NULL) tree->Branch("ix", &ix, "ix/s");
 	else tree->SetBranchAddress("ix", &ix);
 
-	if(tree->GetBranch("iy") == NULL) tree->Branch("iy", &iy, "iy/I");
+	if(tree->GetBranch("iy") == NULL) tree->Branch("iy", &iy, "iy/s");
 	else tree->SetBranchAddress("iy", &iy);
 
-	if(tree->GetBranch("iz") == NULL) tree->Branch("iz", &iz, "iz/I");
+	if(tree->GetBranch("iz") == NULL) tree->Branch("iz", &iz, "iz/B");
 	else tree->SetBranchAddress("iz", &iz);
+
+	if(tree->GetBranch("elecID") == NULL) tree->Branch("elecID", &elecID, "elecID/s");
+	else tree->SetBranchAddress("elecID", &elecID);
+
+	if(tree->GetBranch("status") == NULL) tree->Branch("status", &status, "status/b");
+	else tree->SetBranchAddress("status", &status);
 
 	if(tree->GetBranch("time") == NULL) tree->Branch("time", &time, "time/F");
 	else tree->SetBranchAddress("time", &time);

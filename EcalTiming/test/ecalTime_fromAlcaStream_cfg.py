@@ -212,6 +212,13 @@ process.schedule = cms.Schedule(process.p) # , process.endp)
 
 evtPlots = True if options.isSplash else False
 
+
+#import Electronics mapping
+process.load("Geometry.EcalCommonData.EcalOnly_cfi")
+process.load("Geometry.EcalMapping.EcalMapping_cfi")
+process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
+#process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
+
 #ESLooperProducer looper is imported here:
 process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
 process.looper.isSplash= cms.bool(True if options.isSplash else False)
