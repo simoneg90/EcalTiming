@@ -282,16 +282,6 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 		// if it is a splash event, set a global offset shift such that the time is coherent between different events
 		EcalTimingEvent event = _isSplash ? correctGlobalOffset(it.second, splashDir, bunchCorr) : it.second;
 
-		// TTree for control/debug after calibration
-		if(it.first.rawId() == EBCRYex) timeEBCRYex.add(event);
-		else if(it.first.rawId() == EECRYex) timeEECRYex.add(event);
-
-		int iRing = _ringTools.getRingIndexInSubdet(it.first);
-
-		if(it.first.subdetId() == EcalBarrel && iRing == EBRING) timeEBRing.add(event);
-		if(it.first.subdetId() == EcalEndcap && iRing == EEmRING) timeEEmRing.add(event);
-		else if(it.first.subdetId() == EcalEndcap && iRing == EEpRING) timeEEpRing.add(event);
-
 		if(_makeEventPlots) plotRecHit(event);
 		_timeCalibMap[it.first].add(event);
 
@@ -332,44 +322,50 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 		float correction =  - calibRecHit_itr->second.getMeanWithinNSigma(n_sigma, 10);  // to reject tails
 		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), (*_calibConstants)[calibRecHit_itr->first.rawId()] + correction);
 
+		unsigned int ds = DS_NONE;
 		if(calibRecHit_itr->second.num() > 50) {
-			unsigned int ds = DS_NONE;
 			// check the asymmetry of the distribution: if asymmetric, dump the full set of events for further offline studies
 			if(fabs(calibRecHit_itr->second.getSkewnessWithinNSigma(n_sigma, 10)) > _maxSkewnessForDump)  {
 				ds |= DS_HIGH_SKEW;
-				std::cout << "" << calibRecHit_itr->first.rawId() << "\t" << "dump for skewness " << calibRecHit_itr->second.getSkewnessWithinNSigma(n_sigma, 10) << std::endl;
 
 			}
 			// check if result is stable as function of energy
 			/// \todo make all these parameters
 			if(! calibRecHit_itr->second.isStableInEnergy(_minRecHitEnergy, _minRecHitEnergy + _minRecHitEnergyStep * 10, _minRecHitEnergyStep)) {
 				ds |= DS_UNSTABLE_EN;
-					std::cout << calibRecHit_itr->first.rawId() << "\t" << "dump for unstable energy" << std::endl;
 			}
+		}
 
-			int elecID = (elecMap_->getElectronicsId(calibRecHit_itr->first).rawId() >> 6) & 0x3FFF;
-			if( abs(_HWCalibrationMap[elecID].mean()) > HW_UNIT * 1.5)
-			{
-				std::cout << calibRecHit_itr->first.rawId() << "\t" << "dump for CCU OOT" << std::endl;
-				ds |= DS_CCU_OOT;
-			}
+		int elecID = (elecMap_->getElectronicsId(calibRecHit_itr->first).rawId() >> 6) & 0x3FFF;
+		if( abs(_HWCalibrationMap[elecID].mean()) > HW_UNIT * 1.5)
+		{
+			ds |= DS_CCU_OOT;
+		}
+
+		if(calibRecHit_itr->first.rawId() == EBCRYex) ds |= DS_EB_CRYS;
+		else if(calibRecHit_itr->first.rawId() == EECRYex) ds |= DS_EE_CRYS;
+
+		int iRing = _ringTools.getRingIndexInSubdet(calibRecHit_itr->first);
+
+		if(calibRecHit_itr->first.subdetId() == EcalBarrel && iRing == EBRING) ds |= DS_EB_RING;
+		if(calibRecHit_itr->first.subdetId() == EcalEndcap && iRing == EEmRING) ds |= DS_EEm_RING;
+		else if(calibRecHit_itr->first.subdetId() == EcalEndcap && iRing == EEpRING) ds |= DS_EEp_RING;
 			
-			if(ds != DS_NONE)
-			{
-				int ix, iy, iz;
-				if(calibRecHit_itr->first.subdetId() == EcalBarrel) {
-					EBDetId id(calibRecHit_itr->first);
-					ix = id.ieta();
-					iy = id.iphi();
-					iz = 0;
-				} else {
-					EEDetId id(calibRecHit_itr->first);
-					ix = id.ix();
-					iy = id.iy();
-					iz = id.zside();
-				}
-				calibRecHit_itr->second.dumpToTree(dumpTree, ix, iy, iz, ds, elecID);
+		if(ds != DS_NONE)
+		{
+			int ix, iy, iz;
+			if(calibRecHit_itr->first.subdetId() == EcalBarrel) {
+				EBDetId id(calibRecHit_itr->first);
+				ix = id.ieta();
+				iy = id.iphi();
+				iz = 0;
+			} else {
+				EEDetId id(calibRecHit_itr->first);
+				ix = id.ix();
+				iy = id.iy();
+				iz = id.zside();
 			}
+			calibRecHit_itr->second.dumpToTree(dumpTree, ix, iy, iz, ds, elecID);
 		}
 
 		// add filing Energy hists here
@@ -388,17 +384,6 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 	sprintf(filename, "%s-corr-%d.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str(), iLoop_); //text file holding constants
 	dumpCorrections(filename);
 	// save the xml
-
-
-	timeEBRing.dumpToTree(dumpTree,   EBRING,  0, -2 , DS_EB_RING);
-	timeEEmRing.dumpToTree(dumpTree, EEmRING, 0, -10, DS_EEm_RING);
-	timeEEpRing.dumpToTree(dumpTree, EEpRING, 0, 10 , DS_EEp_RING);
-
-	EBDetId eb(EBCRYex);
-	EEDetId ee(EECRYex);
-	timeEBCRYex.dumpToTree(dumpTree, eb.ieta(), eb.iphi(), 0,        DS_EB_CRYS);
-	timeEECRYex.dumpToTree(dumpTree, ee.ix(),   ee.iy(), ee.zside(), DS_EE_CRYS);
-
 
 	if(iLoop_ >= _maxLoop - 1) return kStop;
 	++iLoop_;

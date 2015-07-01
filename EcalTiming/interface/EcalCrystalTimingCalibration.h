@@ -8,7 +8,7 @@
  * This class contains all the timing information for a single crystal
  */
 
-//Defines for Dump Status (reason for dumping each crystal
+//Defines for Dump Status (reason for dumping each crystal)
 #define DS_NONE         0x00
 #define DS_HIGH_SKEW    0x01
 #define DS_UNSTABLE_EN  0x02

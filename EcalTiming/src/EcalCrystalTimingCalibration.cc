@@ -89,12 +89,18 @@ void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int
 {
 	//assert(tree->GetEntries() == 0);
 	Float_t time, timeError, energy;
-	UShort_t ix(ix_), iy(iy_); 
-	Char_t iz(iz_);
-	UShort_t elecID(elecID_);
-	UChar_t status(status_);
+	UInt_t rawid;
 
-	if(tree->GetBranch("ix") == NULL) tree->Branch("ix", &ix, "ix/s");
+	Short_t  ix(ix_);
+ 	UShort_t iy(iy_); 
+	Char_t   iz(iz_);
+	UShort_t elecID(elecID_);
+	UChar_t  status(status_);
+
+	if(tree->GetBranch("rawid") == NULL) tree->Branch("rawid", &rawid, "rawid/i");
+	else tree->SetBranchAddress("rawid", &rawid);
+
+	if(tree->GetBranch("ix") == NULL) tree->Branch("ix", &ix, "ix/S");
 	else tree->SetBranchAddress("ix", &ix);
 
 	if(tree->GetBranch("iy") == NULL) tree->Branch("iy", &iy, "iy/s");
@@ -119,6 +125,7 @@ void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int
 	tree->SetBranchAddress("energy", &energy);
 
 	for(auto te : timingEvents) {
+		rawid = te.detid().rawId();
 		time = te.time();
 		energy = te.energy();
 		timeError = te.timeError();
