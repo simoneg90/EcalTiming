@@ -231,7 +231,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 			// 	std::cout << "RawID\t" << id.rawId() << std::endl;
 			// 	return false;
 			// }
-			timeEB.add(EcalTimingEvent(*recHit_itr));
+			timeEB.add(EcalTimingEvent(*recHit_itr), false);
 		}
 	}
 
@@ -242,9 +242,9 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 			// create EEDetId
 			EEDetId id(recHit_itr->detid());
 			if(id.zside() < 0) {
-				timeEEM.add(EcalTimingEvent(*recHit_itr));
+				timeEEM.add(EcalTimingEvent(*recHit_itr), false);
 			} else {
-				timeEEP.add(EcalTimingEvent(*recHit_itr));
+				timeEEP.add(EcalTimingEvent(*recHit_itr), false);
 			}
 		}
 	}
@@ -287,7 +287,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 		//Find the CCU(tower) that this crystal belongs to
 		unsigned int elecID = (elecMap_->getElectronicsId(it.first).rawId() >> 6) & 0x3FFF;
-		_HWCalibrationMap[elecID].add(event);
+		_HWCalibrationMap[elecID].add(event,false);
 
 	}
 

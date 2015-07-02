@@ -90,9 +90,9 @@ public:
 	}
 
 	/// add new event for this crystal
-	inline bool add(EcalTimingEvent te_)
+	inline bool add(EcalTimingEvent te_, bool storeEvent = true)
 	{
-		return insertEvent(te_);
+		return insertEvent(te_,storeEvent);
 	}
 	inline void clear()
 	{
@@ -118,14 +118,15 @@ private:
 	// since the values are stored, the calculation is done only once with only one loop over the events
 
 	/// \todo weighted average by timeError
-	bool insertEvent(EcalTimingEvent te_)
+	bool insertEvent(EcalTimingEvent te_, bool storeEvent)
 	{
 		if(te_.timeError() > 0 && te_.timeError() < 1000 && te_.timeError() < 3) { //exclude values with wrong timeError estimation
 			_sum += te_.time();
 			_sum2 += te_.time() * te_.time();
 			_sumE += te_.energy();
 			_num++;
-			timingEvents.push_back(te_);
+			if(storeEvent)
+				timingEvents.push_back(te_);
 			//updateChi2();
 			return true;
 		} else {
