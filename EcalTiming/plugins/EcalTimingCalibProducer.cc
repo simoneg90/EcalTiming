@@ -342,15 +342,14 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 			ds |= DS_CCU_OOT;
 		}
 
-		if(calibRecHit_itr->first.rawId() == EBCRYex) ds |= DS_EB_CRYS;
-		else if(calibRecHit_itr->first.rawId() == EECRYex) ds |= DS_EE_CRYS;
+		if((calibRecHit_itr->first.rawId() == EBCRYex) ||
+				(calibRecHit_itr->first.rawId() == EECRYex)) ds |= DS_CRYS;
 
 		int iRing = _ringTools.getRingIndexInSubdet(calibRecHit_itr->first);
 
-		if(calibRecHit_itr->first.subdetId() == EcalBarrel && iRing == EBRING) ds |= DS_EB_RING;
-		if(calibRecHit_itr->first.subdetId() == EcalEndcap && iRing == EEmRING) ds |= DS_EEm_RING;
-		else if(calibRecHit_itr->first.subdetId() == EcalEndcap && iRing == EEpRING) ds |= DS_EEp_RING;
-			
+		if(calibRecHit_itr->first.subdetId() == EcalBarrel && iRing == EBRING) ds |= DS_RING;
+		else if(calibRecHit_itr->first.subdetId() == EcalEndcap && (iRing == EEmRING || iRing == EEpRING )) ds |= DS_RING;
+
 		if(ds != DS_NONE)
 		{
 			int ix, iy, iz;

@@ -13,11 +13,8 @@
 #define DS_HIGH_SKEW    0x01
 #define DS_UNSTABLE_EN  0x02
 #define DS_CCU_OOT      0x04
-#define DS_EB_RING      0x08
-#define DS_EEm_RING     0x10
-#define DS_EEp_RING     0x20
-#define DS_EB_CRYS      0x40
-#define DS_EE_CRYS      0x80
+#define DS_RING         0x08
+#define DS_CRYS     		0x10
 
 
 class EcalCrystalTimingCalibration
