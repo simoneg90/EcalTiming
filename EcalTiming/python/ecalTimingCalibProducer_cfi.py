@@ -16,4 +16,5 @@ looper = cms.Looper("EcalTimingCalibProducer",
                     produceNewCalib = cms.bool(True),
                     outputDumpFile = cms.string('output.dat'),
                     maxSkewnessForDump = cms.double(2),
+                    minEnergyCheck = cms.vdouble( [ 0.5, 1.0, 2.0, 3.0] ),
                     )
