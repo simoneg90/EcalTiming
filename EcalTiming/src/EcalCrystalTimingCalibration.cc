@@ -46,7 +46,24 @@ void EcalCrystalTimingCalibration::calcAllWithinNSigma(float n_sigma, float maxR
 	return;
 }
 
-
+void EcalCrystalTimingCalibration::getMeanTimeAboveEnergy(std::vector<double> minEnergyCuts, std::map<double,float> &meanTime, std::map<double,float> &num) const
+{
+	//TODO: should we require minEnergyCut to be sorted to optimize a bit?
+	meanTime.clear();
+	num.clear();
+	std::map<double,float> sum;
+	for(auto te : timingEvents) {
+		for(auto energy : minEnergyCuts)
+		{
+			if(te.energy() > energy) {
+				sum[energy] += te.time();
+				num[energy]++;
+			}
+		}
+	}
+	for(auto energy : minEnergyCuts)
+		meanTime[energy] = sum[energy]/num[energy];
+}
 
 bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float step)
 {

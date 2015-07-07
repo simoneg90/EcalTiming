@@ -79,6 +79,7 @@ public:
 	float getMeanWithinNSigma(float sigma, float maxRange); ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
 	float getStdDevWithinNSigma(float sigma, float maxRange); ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
 	float getSkewnessWithinNSigma(float sigma, float maxRange); ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
+	void getMeanTimeAboveEnergy(std::vector<double> minEnergyCuts, std::map<double,float> &meanTime, std::map<double,float> &num) const; ///< returns the mean time for all hits above energy given in input vector
 
 	friend std::ostream& operator<< (std::ostream& os, const EcalCrystalTimingCalibration& s)
 	{
