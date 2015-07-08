@@ -42,6 +42,7 @@
 
 #define SPEEDOFLIGHT 30.0 // (cm/ns)
 #define HW_UNIT 1.1 //(ns)
+#define N_ENERGY_STEPS 10 
 
 // system include files
 #include <memory>
@@ -174,7 +175,6 @@ private:
 	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
 	std::string _outputDumpFileName; ///< name of the output file for the calibration constants' dump
 	float _maxSkewnessForDump;
-	std::vector<double> _minEnergyCheck;
 /// @}
 
 	void dumpCalibration(std::string filename);
@@ -184,7 +184,7 @@ private:
 ///fill histograms with the measured shifts (that will become -corrections for the next step)
 	void FillCalibrationCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
 	void FillHWCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr);
-	void FillEnergyStabilityHists(EcalTimeCalibrationMap::const_iterator cal_itr);
+	void FillEnergyStabilityHists(EcalTimeCalibrationMap::const_iterator cal_itr, std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability);
 	void initHists(TFileDirectory dir);
 	void initEventHists(TFileDirectory dir);
 	void initTree(TFileDirectory dir);
@@ -273,8 +273,11 @@ private:
 	TFileDirectory histDir_;
 	// Tree
 	TTree *dumpTree;
+	TTree * timingTree;
+	TTree * energyStabilityTree;
 
 	// Mean Histograms
+
 	TProfile2D* EneMapEEP_; /// Using TProfile2D so we don't paint empty bins.
 	TProfile2D* EneMapEEM_;
 	TProfile2D* TimeMapEEP_;
@@ -290,13 +293,13 @@ private:
 	TProfile2D* TimeErrorMapEB_;
 
 	// Energy Cut Plots
-	std::map<double,TProfile2D*> energyCutMapMapEB_;
-	std::map<double,TProfile2D*> energyCutMapMapEEM_;
-	std::map<double,TProfile2D*> energyCutMapMapEEP_;
+	std::vector<TProfile2D*> energyCutMapEB_;
+	std::vector<TProfile2D*> energyCutMapEEM_;
+	std::vector<TProfile2D*> energyCutMapEEP_;
 
-	std::map<double,TProfile2D*> energyCutOccuMapMapEB_;
-	std::map<double,TProfile2D*> energyCutOccuMapMapEEM_;
-	std::map<double,TProfile2D*> energyCutOccuMapMapEEP_;
+	std::vector<TProfile2D*> energyCutOccuMapEB_;
+	std::vector<TProfile2D*> energyCutOccuMapEEM_;
+	std::vector<TProfile2D*> energyCutOccuMapEEP_;
 
 	// Event Based Plots
 	TProfile2D * Event_EneMapEEP_;

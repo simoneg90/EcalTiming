@@ -79,7 +79,6 @@ public:
 	float getMeanWithinNSigma(float sigma, float maxRange); ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
 	float getStdDevWithinNSigma(float sigma, float maxRange); ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
 	float getSkewnessWithinNSigma(float sigma, float maxRange); ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
-	void getMeanTimeAboveEnergy(std::vector<double> minEnergyCuts, std::map<double,float> &meanTime, std::map<double,float> &num) const; ///< returns the mean time for all hits above energy given in input vector
 
 	friend std::ostream& operator<< (std::ostream& os, const EcalCrystalTimingCalibration& s)
 	{
@@ -107,9 +106,10 @@ public:
 	}
 
 	void dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_ = 0); ///< dump the full set of events in a TTree:  need an empty tree
+	void dumpCalibToTree(TTree * tree, int rawid_, int ix_, int iy_, int iz_) const; ///< dump the callibratoin to the tree
 
 	/// checks if the time measurement is stable changing the min energy threshold
-	bool isStableInEnergy(float min, float max, float step);
+	bool isStableInEnergy(float min, float max, float step, std::vector< std::pair<float, EcalCrystalTimingCalibration*> > &ret);
 
 private:
 	void calcAllWithinNSigma(float n_sigma, float maxRange = 10); ///< calculate sum, sum2, sum3, n for time if time within n x stdDev and store the result

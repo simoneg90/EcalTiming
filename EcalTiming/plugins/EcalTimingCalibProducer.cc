@@ -47,7 +47,6 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
 	_outputDumpFileName(iConfig.getParameter<std::string>("outputDumpFile")),
 	_maxSkewnessForDump(iConfig.getParameter<double>("maxSkewnessForDump")),
-	_minEnergyCheck(iConfig.getParameter<std::vector<double> >("minEnergyCheck")),
 	_ringTools(EcalRingCalibrationTools())
 {
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
@@ -320,23 +319,25 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 	for(auto calibRecHit_itr = _timeCalibMap.begin(); calibRecHit_itr != _timeCalibMap.end(); ++calibRecHit_itr) {
 		FillCalibrationCorrectionHists(calibRecHit_itr); // histograms with shifts to be corrected at each step
 		FillHWCorrectionHists(calibRecHit_itr);
-		FillEnergyStabilityHists(calibRecHit_itr);
 		float correction =  - calibRecHit_itr->second.getMeanWithinNSigma(n_sigma, 10);  // to reject tails
 		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), (*_calibConstants)[calibRecHit_itr->first.rawId()] + correction);
 
 		unsigned int ds = DS_NONE;
-		if(calibRecHit_itr->second.num() > 50) {
+		//TODO: This probably shouldn't be commented out. Move the stat check into the individual functions?
+		//if(calibRecHit_itr->second.num() > 50) {
 			// check the asymmetry of the distribution: if asymmetric, dump the full set of events for further offline studies
 			if(fabs(calibRecHit_itr->second.getSkewnessWithinNSigma(n_sigma, 10)) > _maxSkewnessForDump)  {
 				ds |= DS_HIGH_SKEW;
 
 			}
+
 			// check if result is stable as function of energy
-			/// \todo make all these parameters
-			if(! calibRecHit_itr->second.isStableInEnergy(_minRecHitEnergy, _minRecHitEnergy + _minRecHitEnergyStep * 10, _minRecHitEnergyStep)) {
+			std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability;
+			if(! calibRecHit_itr->second.isStableInEnergy(_minRecHitEnergy, _minRecHitEnergy + _minRecHitEnergyStep * N_ENERGY_STEPS, _minRecHitEnergyStep, energyStability)) {
 				ds |= DS_UNSTABLE_EN;
 			}
-		}
+			FillEnergyStabilityHists(calibRecHit_itr, energyStability);
+		//}
 
 		int elecID = (elecMap_->getElectronicsId(calibRecHit_itr->first).rawId() >> 6) & 0x3FFF;
 		if( abs(_HWCalibrationMap[elecID].mean()) > HW_UNIT * 1.5)
@@ -456,6 +457,8 @@ void EcalTimingCalibProducer::dumpCalibration(std::string filename)
 
 void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr)
 {
+	int ix,iy,iz;
+	int rawid = cal_itr->first.rawId();
 	if(cal_itr->first.subdetId() == EcalBarrel) {
 		EBDetId id(cal_itr->first);
 		// Fill Rechit Energy
@@ -465,6 +468,11 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 
 		RechitEneEB_->Fill(cal_itr->second.meanE());   // 1D histogram
 		RechitTimeEB_->Fill(cal_itr->second.mean()); // 1D histogram
+
+		ix = id.ieta();
+		iy = id.iphi();
+		iz = 0;
+
 	} else {
 		// create EEDetId
 		EEDetId id(cal_itr->first);
@@ -483,8 +491,13 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 			RechitEneEEP_->Fill(cal_itr->second.meanE());
 			RechitTimeEEP_->Fill(cal_itr->second.mean());
 		}
+
+		ix = id.ix();
+		iy = id.iy();
+		iz = id.zside();
 	}
 
+	cal_itr->second.dumpCalibToTree(timingTree, rawid, ix, iy, iz);
 }
 
 void EcalTimingCalibProducer::FillHWCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr)
@@ -506,38 +519,48 @@ void EcalTimingCalibProducer::FillHWCorrectionHists(EcalTimeCalibrationMap::cons
 	}
 
 }
-void EcalTimingCalibProducer::FillEnergyStabilityHists(EcalTimeCalibrationMap::const_iterator cal_itr)
+void EcalTimingCalibProducer::FillEnergyStabilityHists(EcalTimeCalibrationMap::const_iterator cal_itr, std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability)
 {
-	std::map<double,float> meanTime,occupancy;
-  	cal_itr->second.getMeanTimeAboveEnergy(_minEnergyCheck,meanTime,occupancy);
-	std::map<double,TProfile2D*> * time_map;
-	std::map<double,TProfile2D*> * occu_map;
 
-	int x,y;
+	std::vector<TProfile2D*> * time_list;
+	std::vector<TProfile2D*> * occu_list;
+	int ix,iy,iz;
+  	int 	rawid = cal_itr->first.rawId();
 	//choose which map to store in
 	if(cal_itr->first.subdetId() == EcalBarrel) {
 		EBDetId id(cal_itr->first);
-		time_map = &energyCutMapMapEB_;
-		occu_map = &energyCutOccuMapMapEB_;
-		x = id.ieta();
-		y = id.iphi();
+		time_list = &energyCutMapEB_;
+		occu_list = &energyCutOccuMapEB_;
+		ix = id.ieta();
+		iy = id.iphi();
+		iz = 0;
 	} else {
 		EEDetId id(cal_itr->first);
-		x = id.ix();
-		y = id.iy();
+		ix = id.ix();
+		iy = id.iy();
+		iz = id.zside();
 		if(id.zside() < 0) {
-			time_map = &energyCutMapMapEEM_;
-			occu_map = &energyCutOccuMapMapEEM_;
+			time_list = &energyCutMapEEM_;
+			occu_list = &energyCutOccuMapEEM_;
 		} else {
-			time_map = &energyCutMapMapEEP_;
-			occu_map = &energyCutOccuMapMapEEP_;
+			time_list = &energyCutMapEEP_;
+			occu_list = &energyCutOccuMapEEP_;
 		}
 	}
 
-	for( auto en : _minEnergyCheck)
+	auto time_it = time_list->begin();
+	auto occu_it = occu_list->begin();
+	for(auto it = energyStability.begin(); it!=energyStability.end(); time_it++, occu_it++, it++)
 	{
-		(*time_map)[en]->Fill(x, y, meanTime[en]);
-		(*occu_map)[en]->Fill(x, y, occupancy[en]);
+		(*time_it)->Fill(ix, iy, it->second->mean());
+		(*occu_it)->Fill(ix, iy, it->second->num());
+
+		// Add min_energy to the tree
+		float min_energy = it->first;
+		if(energyStabilityTree->GetBranch("min_energy") == NULL) energyStabilityTree->Branch("min_energy", &min_energy, "min_energy/F");
+		energyStabilityTree->SetBranchAddress("min_energy", &min_energy);
+
+		it->second->dumpCalibToTree(energyStabilityTree,rawid,ix,iy,iz);
 	}
 
 }
@@ -592,16 +615,17 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 
 
 	TFileDirectory energyCutDir = fdir.mkdir("EnergyCutMaps");
-	for( double en_cut : _minEnergyCheck)
+
+	for(double en_cut = _minRecHitEnergy; en_cut < _minRecHitEnergy + N_ENERGY_STEPS * _minRecHitEnergyStep ; en_cut += _minRecHitEnergyStep) 
 	{
 		std::string en_cut_str = std::to_string(en_cut);
-		energyCutMapMapEB_ [en_cut] = energyCutDir.make<TProfile2D>(("EnergyCutMapEB"  + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EB ; i#eta; i#phi;Time[ns]").c_str(), 171, -85, 86, 360, 1., 361.);
-		energyCutMapMapEEP_[en_cut] = energyCutDir.make<TProfile2D>(("EnergyCutMapEEP" + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EE+;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101);
-		energyCutMapMapEEM_[en_cut] = energyCutDir.make<TProfile2D>(("EnergyCutMapEEM" + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EE-;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101);
+		energyCutMapEB_ .push_back(energyCutDir.make<TProfile2D>(("EnergyCutMapEB"  + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EB ; i#eta; i#phi;Time[ns]").c_str(), 171, -85, 86, 360, 1., 361.));
+		energyCutMapEEP_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutMapEEP" + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EE+;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
+		energyCutMapEEM_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutMapEEM" + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EE-;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
 
-		energyCutOccuMapMapEB_ [en_cut] = energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEB"  + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EB ; i#eta; i#phi;Time[ns]").c_str(), 171, -85, 86, 360, 1., 361.);
-		energyCutOccuMapMapEEP_[en_cut] = energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEEP" + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EE+;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101);
-		energyCutOccuMapMapEEM_[en_cut] = energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEEM" + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EE-;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101);
+		energyCutOccuMapEB_ .push_back(energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEB"  + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EB ; i#eta; i#phi;Time[ns]").c_str(), 171, -85, 86, 360, 1., 361.));
+		energyCutOccuMapEEP_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEEP" + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EE+;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
+		energyCutOccuMapEEM_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEEM" + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EE-;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
 	}
 
 }
@@ -610,6 +634,8 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 void EcalTimingCalibProducer::initTree(TFileDirectory fdir)
 {
 	dumpTree = fdir.make<TTree>("dumpTree", "");
+	timingTree = fdir.make<TTree>("timingTree", "");
+	energyStabilityTree = fdir.make<TTree>("energyStabilityTree", "");
 }
 
 //define this as a plug-in

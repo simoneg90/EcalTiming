@@ -225,6 +225,7 @@ process.looper.isSplash= cms.bool(True if options.isSplash else False)
 process.looper.makeEventPlots=evtPlots
 process.looper.globalOffset = cms.double(options.offset)
 process.looper.outputDumpFile = process.TFileService.fileName
+process.looper.minRecHitEnergy = cms.double(0.5)
 
 processDumpFile = open('processDump.py', 'w')
 print >> processDumpFile, process.dumpPython()

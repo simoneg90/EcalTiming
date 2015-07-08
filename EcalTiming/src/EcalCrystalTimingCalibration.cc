@@ -4,7 +4,7 @@
 float EcalCrystalTimingCalibration::getMeanWithinNSigma(float n_sigma, float maxRange)
 {
 
-	if(_numWithinNSigma.count(n_sigma) == 0) calcAllWithinNSigma(n_sigma);
+	if(_numWithinNSigma.count(n_sigma) == 0) calcAllWithinNSigma(n_sigma, maxRange);
 	return _sumWithinNSigma[n_sigma] / _numWithinNSigma[n_sigma];
 }
 
@@ -46,54 +46,34 @@ void EcalCrystalTimingCalibration::calcAllWithinNSigma(float n_sigma, float maxR
 	return;
 }
 
-void EcalCrystalTimingCalibration::getMeanTimeAboveEnergy(std::vector<double> minEnergyCuts, std::map<double,float> &meanTime, std::map<double,float> &num) const
+bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float step, std::vector<std::pair<float,EcalCrystalTimingCalibration*> > &cutLevels)
 {
-	//TODO: should we require minEnergyCut to be sorted to optimize a bit?
-	meanTime.clear();
-	num.clear();
-	std::map<double,float> sum;
-	for(auto te : timingEvents) {
-		for(auto energy : minEnergyCuts)
-		{
-			if(te.energy() > energy) {
-				sum[energy] += te.time();
-				num[energy]++;
-			}
-		}
-	}
-	for(auto energy : minEnergyCuts)
-		meanTime[energy] = sum[energy]/num[energy];
-}
-
-bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float step)
-{
+	if(timingEvents.size() == 0) return true;
 	unsigned int nSteps = (max - min) / step;
 
 	assert(nSteps < 100);
 	assert(nSteps > 1);
-	float sum[100], sum2[100];
-	unsigned int num[100];
+
+	cutLevels.clear();
+	float energy = min;
+	for(unsigned int index = 0; index < nSteps; ++index, energy += step) 
+		cutLevels.push_back(std::pair<float,EcalCrystalTimingCalibration*>(energy, new EcalCrystalTimingCalibration()));
 
 	for(auto te : timingEvents) {
-		float energy = min;
-		for(unsigned int index = 0; index < nSteps; ++index, energy += step) {
-
-			if(te.energy() > energy) {
-				sum[index] += te.time();
-				sum2[index] += te.time() * te.time();
-				//sum3[index]+=te.time() * te.time() * te.time();
-				num[index]++;
+		for(auto it : cutLevels)
+		{
+			if(te.energy() > it.first) {
+				it.second->add(te, false);
 			}
-
+			else break;
 		}
 	}
 
-
-	for(unsigned int index = 0; index < nSteps; ++index) {
-
-		float mean_ = sum[index] / num[index];
-		float stdDev_ = sqrt(sum2[index] / num[index] - mean_ * mean_);
-		if(stdDev_ / sqrt(num[index]) > 1.41 * meanError() || num[index] < 30) break; // does not make any sense to continue if the error is too high
+	for( auto it : cutLevels) {
+		float mean_ = it.second->mean();
+		float stdDev_ = it.second->stdDev();
+		int num_ = it.second->num();
+		if(stdDev_ / sqrt(num_) > 1.41 * meanError() || num_ < 30) break; // does not make any sense to continue if the error is too high
 
 		if(abs(mean() - mean_) > meanError() ) return false; /// \todo define a better criterium
 		// now requires only that the mean with higher energy threshold is within the calibration statistical uncertainty
@@ -102,8 +82,49 @@ bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float 
 
 }
 
+void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int ix_, int iy_, int iz_) const
+{
+	if (num() == 0) return;
+	//assert(tree->GetEntries() == 0);
+	Float_t time(mean());
+  	Float_t timeError(meanError());
+	Float_t energy(meanE());
+	UInt_t  n(num());
+	UInt_t  rawid(rawid_);
+	Short_t  ix(ix_);
+ 	UShort_t iy(iy_); 
+	Char_t   iz(iz_);
+
+	if(tree->GetBranch("rawid") == NULL) tree->Branch("rawid", &rawid, "rawid/i");
+	else tree->SetBranchAddress("rawid", &rawid);
+
+	if(tree->GetBranch("ix") == NULL) tree->Branch("ix", &ix, "ix/S");
+	else tree->SetBranchAddress("ix", &ix);
+
+	if(tree->GetBranch("iy") == NULL) tree->Branch("iy", &iy, "iy/s");
+	else tree->SetBranchAddress("iy", &iy);
+
+	if(tree->GetBranch("iz") == NULL) tree->Branch("iz", &iz, "iz/B");
+	else tree->SetBranchAddress("iz", &iz);
+
+	if(tree->GetBranch("time") == NULL) tree->Branch("time", &time, "time/F");
+	else tree->SetBranchAddress("time", &time);
+
+	if(tree->GetBranch("timeError") == NULL) tree->Branch("timeError", &timeError, "timeError/F");
+	tree->SetBranchAddress("timeError", &timeError);
+
+	if(tree->GetBranch("energy") == NULL) tree->Branch("energy", &energy, "energy/F");
+	tree->SetBranchAddress("energy", &energy);
+
+	if(tree->GetBranch("num") == NULL) tree->Branch("num", &n, "num/i");
+	else tree->SetBranchAddress("num", &n);
+
+	tree->Fill();
+}
+
 void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_)
 {
+	if (num() == 0) return;
 	//assert(tree->GetEntries() == 0);
 	Float_t time, timeError, energy;
 	UInt_t rawid;
