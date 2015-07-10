@@ -54,6 +54,7 @@ public:
 	};
 	inline float mean() const
 	{
+		if(!_num) return -999.f;
 		return _sum / _num;
 	}; ///< average time (mean of the time distribution)
 	inline float stdDev() const  ///< standard deviation of the time distribution
@@ -105,8 +106,8 @@ public:
 		timingEvents.clear();
 	}
 
-	void dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_ = 0); ///< dump the full set of events in a TTree:  need an empty tree
-	void dumpCalibToTree(TTree * tree, int rawid_, int ix_, int iy_, int iz_) const; ///< dump the callibratoin to the tree
+	void dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_, int iRing_); ///< dump the full set of events in a TTree:  need an empty tree
+	void dumpCalibToTree(TTree * tree, int rawid_, int ix_, int iy_, int iz_, unsigned int elecID_, int iRing_) const; ///< dump the callibratoin to the tree
 
 	/// checks if the time measurement is stable changing the min energy threshold
 	bool isStableInEnergy(float min, float max, float step, std::vector< std::pair<float, EcalCrystalTimingCalibration*> > &ret);

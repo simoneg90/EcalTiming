@@ -42,7 +42,6 @@
 
 #define SPEEDOFLIGHT 30.0 // (cm/ns)
 #define HW_UNIT 1.1 //(ns)
-#define N_ENERGY_STEPS 10 
 
 // system include files
 #include <memory>
@@ -168,8 +167,8 @@ private:
 	edm::InputTag _ecalRecHitsEETAG;///< input collection
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 	unsigned int _recHitMin; ///< require at least this many rec hits to count the event
-	double       _minRecHitEnergy; ///< minimum energy for the recHit to be considered for timing studies
-	double _minRecHitEnergyStep; ///< at each iteration the code increases the minimum energy required for the calibration
+	double _minRecHitEnergyStep; ///< to check step size to check energy stability
+	double _minRecHitEnergyNStep; ///< number of steps to check energy stability
 	unsigned int _minEntries; ///< require a minimum number of entries in a ring to do averages
 	float        _globalOffset;    ///< time to subtract from every event
 	bool _produceNewCalib; ///< true if you don't want to use the values in DB and what to extract new absolute calibrations, if false iteration does not work
@@ -267,6 +266,15 @@ private:
 	///
 	EcalTimingEvent correctGlobalOffset(const EcalTimingEvent& ev, int splashDir, float bunchCorr);
 
+	unsigned int getElecID(DetId id)
+ 	{
+		return (elecMap_->getElectronicsId(id).rawId() >> 6) & 0x3FFF;
+	}
+	float getEnergyThreshold(const DetId detid)
+	{
+		int iRing = _ringTools.getRingIndexInSubdet(detid);
+		return detid.subdetId() == EcalBarrel ? 13 * 0.04 :  20 * (79.29 - 4.148 * iRing + 0.2442 * iRing * iRing ) / 1000 ;
+	}
 	std::map<DetId, float>  _CrysEnergyMap;
 
 	edm::Service<TFileService> fileService_;
@@ -291,15 +299,6 @@ private:
 	TProfile2D* TimeErrorMapEEM_;
 
 	TProfile2D* TimeErrorMapEB_;
-
-	// Energy Cut Plots
-	std::vector<TProfile2D*> energyCutMapEB_;
-	std::vector<TProfile2D*> energyCutMapEEM_;
-	std::vector<TProfile2D*> energyCutMapEEP_;
-
-	std::vector<TProfile2D*> energyCutOccuMapEB_;
-	std::vector<TProfile2D*> energyCutOccuMapEEM_;
-	std::vector<TProfile2D*> energyCutOccuMapEEP_;
 
 	// Event Based Plots
 	TProfile2D * Event_EneMapEEP_;

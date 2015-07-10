@@ -40,8 +40,8 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
 
 	///\todo the min energy should be in ADC not in energy
-	_minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
 	_minRecHitEnergyStep(iConfig.getParameter<double>("minRecHitEnergyStep")),
+	_minRecHitEnergyNStep(iConfig.getParameter<double>("minRecHitEnergyNStep")),
 	_minEntries(iConfig.getParameter<unsigned int>("minEntries")),
 	_globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
@@ -134,11 +134,9 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit, EventTimeMap& 
 {
 	//check if rechit is valid
 	if(! recHit.checkFlags(_recHitFlags)) return false;
-	int iRing = _ringTools.getRingIndexInSubdet(recHit.detid());
-	float energyThreshold = recHit.detid().subdetId() == EcalBarrel ? 20 * 0.04 :  20 * (79.29 - 4.148 * iRing + 0.2442 * iRing * iRing ) / 1000 ;
 
+	float energyThreshold = getEnergyThreshold(recHit.detid());
 	if( recHit.energy() < (energyThreshold)) return false; // minRecHitEnergy in ADC for EB
-	if( recHit.energy() < (energyThreshold + _minRecHitEnergyStep * _iter)) return false;
 	//if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * (_minRecHitEnergy+_minRecHitEnergyStep*_iter)) return false;
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
@@ -286,7 +284,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 		_timeCalibMap[it.first].add(event);
 
 		//Find the CCU(tower) that this crystal belongs to
-		unsigned int elecID = (elecMap_->getElectronicsId(it.first).rawId() >> 6) & 0x3FFF;
+		unsigned int elecID = getElecID(it.first);
 		_HWCalibrationMap[elecID].add(event,false);
 
 	}
@@ -333,13 +331,14 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 			// check if result is stable as function of energy
 			std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability;
-			if(! calibRecHit_itr->second.isStableInEnergy(_minRecHitEnergy, _minRecHitEnergy + _minRecHitEnergyStep * N_ENERGY_STEPS, _minRecHitEnergyStep, energyStability)) {
+			float energyThreshold = getEnergyThreshold(calibRecHit_itr->first);
+			if(! calibRecHit_itr->second.isStableInEnergy(energyThreshold, energyThreshold + _minRecHitEnergyStep * _minRecHitEnergyNStep, _minRecHitEnergyStep, energyStability)) {
 				ds |= DS_UNSTABLE_EN;
 			}
 			FillEnergyStabilityHists(calibRecHit_itr, energyStability);
 		//}
 
-		int elecID = (elecMap_->getElectronicsId(calibRecHit_itr->first).rawId() >> 6) & 0x3FFF;
+		unsigned int elecID = getElecID(calibRecHit_itr->first);
 		if( abs(_HWCalibrationMap[elecID].mean()) > HW_UNIT * 1.5)
 		{
 			ds |= DS_CCU_OOT;
@@ -367,7 +366,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 				iy = id.iy();
 				iz = id.zside();
 			}
-			calibRecHit_itr->second.dumpToTree(dumpTree, ix, iy, iz, ds, elecID);
+			calibRecHit_itr->second.dumpToTree(dumpTree, ix, iy, iz, ds, elecID, iRing);
 		}
 
 		// add filing Energy hists here
@@ -497,12 +496,13 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 		iz = id.zside();
 	}
 
-	cal_itr->second.dumpCalibToTree(timingTree, rawid, ix, iy, iz);
+	int iRing = _ringTools.getRingIndexInSubdet(cal_itr->first);
+	cal_itr->second.dumpCalibToTree(timingTree, rawid, ix, iy, iz, getElecID(cal_itr->first), iRing);
 }
 
 void EcalTimingCalibProducer::FillHWCorrectionHists(EcalTimeCalibrationMap::const_iterator cal_itr)
 {
-	unsigned int elecID = (elecMap_->getElectronicsId(cal_itr->first).rawId() >> 6) & 0x3FFF;
+	unsigned int elecID = getElecID(cal_itr->first);
 	float time = _HWCalibrationMap[elecID].mean();
 	if(cal_itr->first.subdetId() == EcalBarrel) {
 		EBDetId id(cal_itr->first);
@@ -522,15 +522,11 @@ void EcalTimingCalibProducer::FillHWCorrectionHists(EcalTimeCalibrationMap::cons
 void EcalTimingCalibProducer::FillEnergyStabilityHists(EcalTimeCalibrationMap::const_iterator cal_itr, std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability)
 {
 
-	std::vector<TProfile2D*> * time_list;
-	std::vector<TProfile2D*> * occu_list;
 	int ix,iy,iz;
-  	int 	rawid = cal_itr->first.rawId();
+  	int rawid = cal_itr->first.rawId();
 	//choose which map to store in
 	if(cal_itr->first.subdetId() == EcalBarrel) {
 		EBDetId id(cal_itr->first);
-		time_list = &energyCutMapEB_;
-		occu_list = &energyCutOccuMapEB_;
 		ix = id.ieta();
 		iy = id.iphi();
 		iz = 0;
@@ -539,28 +535,24 @@ void EcalTimingCalibProducer::FillEnergyStabilityHists(EcalTimeCalibrationMap::c
 		ix = id.ix();
 		iy = id.iy();
 		iz = id.zside();
-		if(id.zside() < 0) {
-			time_list = &energyCutMapEEM_;
-			occu_list = &energyCutOccuMapEEM_;
-		} else {
-			time_list = &energyCutMapEEP_;
-			occu_list = &energyCutOccuMapEEP_;
-		}
 	}
 
-	auto time_it = time_list->begin();
-	auto occu_it = occu_list->begin();
-	for(auto it = energyStability.begin(); it!=energyStability.end(); time_it++, occu_it++, it++)
+	int iRing = _ringTools.getRingIndexInSubdet(cal_itr->first);
+
+	// Add min_energy to the tree which gets filld inside the dump function
+	float min_energy = -1.0;
+	if(energyStabilityTree->GetBranch("min_energy") == NULL) energyStabilityTree->Branch("min_energy", &min_energy, "min_energy/F");
+	energyStabilityTree->SetBranchAddress("min_energy", &min_energy);
+
+	UChar_t index = 0;
+	if(energyStabilityTree->GetBranch("index") == NULL) energyStabilityTree->Branch("index", &index, "index/b");
+	energyStabilityTree->SetBranchAddress("index", &index);
+
+	for(auto it = energyStability.begin(); it!=energyStability.end(); it++)
 	{
-		(*time_it)->Fill(ix, iy, it->second->mean());
-		(*occu_it)->Fill(ix, iy, it->second->num());
-
-		// Add min_energy to the tree
-		float min_energy = it->first;
-		if(energyStabilityTree->GetBranch("min_energy") == NULL) energyStabilityTree->Branch("min_energy", &min_energy, "min_energy/F");
-		energyStabilityTree->SetBranchAddress("min_energy", &min_energy);
-
-		it->second->dumpCalibToTree(energyStabilityTree,rawid,ix,iy,iz);
+		min_energy = it->first;
+		it->second->dumpCalibToTree(energyStabilityTree,rawid,ix,iy,iz,getElecID(cal_itr->first),iRing);
+		index++;
 	}
 
 }
@@ -612,21 +604,6 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 	HWTimeMapEEP_ = fdir.make<TProfile2D>("HWTimeMapEEP", "Mean HW Time[ns] profile map EE+;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
 	HWTimeMapEEM_ = fdir.make<TProfile2D>("HWTimeMapEEM", "Mean HW Time[ns] profile map EE-;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
 	HWTimeMapEB_  = fdir.make<TProfile2D>("HWTimeMapEB",  "Mean HW Time[ns] EB profile map; i#eta; i#phi;Time[ns]", 171, -85, 86, 360, 1., 361.);
-
-
-	TFileDirectory energyCutDir = fdir.mkdir("EnergyCutMaps");
-
-	for(double en_cut = _minRecHitEnergy; en_cut < _minRecHitEnergy + N_ENERGY_STEPS * _minRecHitEnergyStep ; en_cut += _minRecHitEnergyStep) 
-	{
-		std::string en_cut_str = std::to_string(en_cut);
-		energyCutMapEB_ .push_back(energyCutDir.make<TProfile2D>(("EnergyCutMapEB"  + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EB ; i#eta; i#phi;Time[ns]").c_str(), 171, -85, 86, 360, 1., 361.));
-		energyCutMapEEP_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutMapEEP" + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EE+;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
-		energyCutMapEEM_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutMapEEM" + en_cut_str).c_str(), ("Mean Time[ns] E > " + en_cut_str + "GeV EE-;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
-
-		energyCutOccuMapEB_ .push_back(energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEB"  + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EB ; i#eta; i#phi;Time[ns]").c_str(), 171, -85, 86, 360, 1., 361.));
-		energyCutOccuMapEEP_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEEP" + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EE+;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
-		energyCutOccuMapEEM_.push_back(energyCutDir.make<TProfile2D>(("EnergyCutOccuMapEEM" + en_cut_str).c_str(), ("Occupancy E > " + en_cut_str + "GeV EE-;ix;iy; Time[ns]").c_str(), 100, 1, 101, 100, 1, 101));
-	}
 
 }
 

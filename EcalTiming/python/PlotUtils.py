@@ -39,6 +39,16 @@ def customROOTstyle() :
     ROOT.gStyle.SetPalette(55);
     ROOT.gStyle.SetNumberContours(100);
 
+import numpy as np
+def customPalette(zeropoint = 0.5):
+	Number = 3;
+	Red    = np.array([166,  255,  8  ],dtype=float)/255.
+	Green  = np.array([54 ,  255,  81 ], dtype=float)/255.
+	Blue   = np.array([3  ,  200,  156], dtype=float)/255.
+	Length = np.array([0.0,  zeropoint, 1.0], dtype=float)
+	nb=100;
+	ROOT.TColor.CreateGradientColorTable(Number,Length,Red,Green,Blue,nb)
+
 def drawMultipleGrid(hists,outname,limits=[],setLogY=False,setLogZ=False, ncols = 3, width=1500,height=1100):
 	c = ROOT.TCanvas("c", "c", width,height)
 	nhists = len(hists)

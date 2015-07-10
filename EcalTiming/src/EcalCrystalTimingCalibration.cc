@@ -49,7 +49,7 @@ void EcalCrystalTimingCalibration::calcAllWithinNSigma(float n_sigma, float maxR
 bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float step, std::vector<std::pair<float,EcalCrystalTimingCalibration*> > &cutLevels)
 {
 	if(timingEvents.size() == 0) return true;
-	unsigned int nSteps = (max - min) / step;
+	unsigned int nSteps = std::round((max - min) / step);
 
 	assert(nSteps < 100);
 	assert(nSteps > 1);
@@ -82,9 +82,8 @@ bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float 
 
 }
 
-void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int ix_, int iy_, int iz_) const
+void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int ix_, int iy_, int iz_, unsigned int elecID_, int iRing_) const
 {
-	if (num() == 0) return;
 	//assert(tree->GetEntries() == 0);
 	Float_t time(mean());
   	Float_t timeError(meanError());
@@ -94,6 +93,8 @@ void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int 
 	Short_t  ix(ix_);
  	UShort_t iy(iy_); 
 	Char_t   iz(iz_);
+	UShort_t elecID(elecID_);
+	Short_t iRing(iRing_);
 
 	if(tree->GetBranch("rawid") == NULL) tree->Branch("rawid", &rawid, "rawid/i");
 	else tree->SetBranchAddress("rawid", &rawid);
@@ -119,12 +120,17 @@ void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int 
 	if(tree->GetBranch("num") == NULL) tree->Branch("num", &n, "num/i");
 	else tree->SetBranchAddress("num", &n);
 
+	if(tree->GetBranch("elecID") == NULL) tree->Branch("elecID", &elecID, "elecID/s");
+	else tree->SetBranchAddress("elecID", &elecID);
+
+	if(tree->GetBranch("iRing") == NULL) tree->Branch("iRing", &iRing, "iRing/S");
+	else tree->SetBranchAddress("iRing", &iRing);
+
 	tree->Fill();
 }
 
-void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_)
+void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int iz_, unsigned int status_, unsigned int elecID_, int iRing_)
 {
-	if (num() == 0) return;
 	//assert(tree->GetEntries() == 0);
 	Float_t time, timeError, energy;
 	UInt_t rawid;
@@ -134,6 +140,7 @@ void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int
 	Char_t   iz(iz_);
 	UShort_t elecID(elecID_);
 	UChar_t  status(status_);
+	Short_t iRing(iRing_);
 
 	if(tree->GetBranch("rawid") == NULL) tree->Branch("rawid", &rawid, "rawid/i");
 	else tree->SetBranchAddress("rawid", &rawid);
@@ -147,12 +154,6 @@ void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int
 	if(tree->GetBranch("iz") == NULL) tree->Branch("iz", &iz, "iz/B");
 	else tree->SetBranchAddress("iz", &iz);
 
-	if(tree->GetBranch("elecID") == NULL) tree->Branch("elecID", &elecID, "elecID/s");
-	else tree->SetBranchAddress("elecID", &elecID);
-
-	if(tree->GetBranch("status") == NULL) tree->Branch("status", &status, "status/b");
-	else tree->SetBranchAddress("status", &status);
-
 	if(tree->GetBranch("time") == NULL) tree->Branch("time", &time, "time/F");
 	else tree->SetBranchAddress("time", &time);
 
@@ -161,6 +162,15 @@ void EcalCrystalTimingCalibration::dumpToTree(TTree *tree, int ix_, int iy_, int
 
 	if(tree->GetBranch("energy") == NULL) tree->Branch("energy", &energy, "energy/F");
 	tree->SetBranchAddress("energy", &energy);
+
+	if(tree->GetBranch("status") == NULL) tree->Branch("status", &status, "status/b");
+	else tree->SetBranchAddress("status", &status);
+
+	if(tree->GetBranch("elecID") == NULL) tree->Branch("elecID", &elecID, "elecID/s");
+	else tree->SetBranchAddress("elecID", &elecID);
+
+	if(tree->GetBranch("iRing") == NULL) tree->Branch("iRing", &iRing, "iRing/S");
+	else tree->SetBranchAddress("iRing", &iRing);
 
 	for(auto te : timingEvents) {
 		rawid = te.detid().rawId();
