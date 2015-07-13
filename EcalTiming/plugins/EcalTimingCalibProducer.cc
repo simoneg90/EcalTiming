@@ -408,12 +408,12 @@ void EcalTimingCalibProducer::dumpCorrections(std::string filename)
 		if(id_.subdetId() == EcalBarrel) {
 			EBDetId id(id_);
 			fout << id.ieta() << "\t" << id.iphi() << "\t" << 0
-			     << "\t" << calibRecHit_itr->second.mean() << "\t" << calibRecHit_itr->second.stdDev() << "\t" << calibRecHit_itr->second.num() << "\t" << calibRecHit_itr->second.meanE()
+			     << "\t" << calibRecHit_itr->second.getMeanWithinNSigma(2,10) << "\t" << calibRecHit_itr->second.stdDev() << "\t" << calibRecHit_itr->second.num() << "\t" << calibRecHit_itr->second.meanE()
 			     << "\t" << id.rawId() << std::endl;
 		} else {
 			EEDetId id(id_);
 			fout << id.ix() << "\t" << id.iy() << "\t" << id.zside()
-			     << "\t" << calibRecHit_itr->second.mean() << "\t" << calibRecHit_itr->second.stdDev() << "\t" << calibRecHit_itr->second.num() << "\t" << calibRecHit_itr->second.meanE()
+			     << "\t" << calibRecHit_itr->second.getMeanWithinNSigma(2,10) << "\t" << calibRecHit_itr->second.stdDev() << "\t" << calibRecHit_itr->second.num() << "\t" << calibRecHit_itr->second.meanE()
 			     << "\t" << id.rawId() << std::endl;
 		}
 	}
@@ -462,11 +462,11 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 		EBDetId id(cal_itr->first);
 		// Fill Rechit Energy
 		EneMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.meanE()); // 2D energy map
-		TimeMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.mean()); // 2D time map
-		TimeErrorMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.meanError());
+		TimeMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.getMeanWithinNSigma(2,10)); // 2D time map
+		TimeErrorMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.getMeanErrorWithinNSigma(2,10));
 
 		RechitEneEB_->Fill(cal_itr->second.meanE());   // 1D histogram
-		RechitTimeEB_->Fill(cal_itr->second.mean()); // 1D histogram
+		RechitTimeEB_->Fill(cal_itr->second.getMeanWithinNSigma(2,10)); // 1D histogram
 
 		ix = id.ieta();
 		iy = id.iphi();
@@ -477,18 +477,18 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 		EEDetId id(cal_itr->first);
 		if(id.zside() < 0) {
 			EneMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.meanE());
-			TimeMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.mean());
-			TimeErrorMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.meanError());
+			TimeMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.getMeanWithinNSigma(2,10));
+			TimeErrorMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.getMeanErrorWithinNSigma(2,10));
 
 			RechitEneEEM_->Fill(cal_itr->second.meanE());
-			RechitTimeEEM_->Fill(cal_itr->second.mean());
+			RechitTimeEEM_->Fill(cal_itr->second.getMeanWithinNSigma(2,10));
 		} else {
 			EneMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.meanE());
-			TimeMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.mean());
-			TimeErrorMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.meanError());
+			TimeMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.getMeanWithinNSigma(2,10));
+			TimeErrorMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.getMeanErrorWithinNSigma(2,10));
 
 			RechitEneEEP_->Fill(cal_itr->second.meanE());
-			RechitTimeEEP_->Fill(cal_itr->second.mean());
+			RechitTimeEEP_->Fill(cal_itr->second.getMeanWithinNSigma(2,10));
 		}
 
 		ix = id.ix();

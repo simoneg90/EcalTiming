@@ -31,8 +31,8 @@ private:
 
 	float _sumE; ///< scalar sum of the energy of each timingEvent: needed for average energy
 
-	std::map<float, float> _sumWithinNSigma, _sum2WithinNSigma, _sum3WithinNSigma, _sumEWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
-	std::map<float, unsigned int> _numWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
+	mutable std::map<float, float> _sumWithinNSigma, _sum2WithinNSigma, _sum3WithinNSigma, _sumEWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
+	mutable std::map<float, unsigned int> _numWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
 
 	std::vector<EcalTimingEvent> timingEvents; ///< vector containing  all the events for this crystal
 	std::vector<EcalTimingEvent>::iterator maxChi2Itr;
@@ -77,9 +77,10 @@ public:
 	/* } */
 	//float totalChi2;
 
-	float getMeanWithinNSigma(float sigma, float maxRange); ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
-	float getStdDevWithinNSigma(float sigma, float maxRange); ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
-	float getSkewnessWithinNSigma(float sigma, float maxRange); ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
+	float getMeanWithinNSigma(float sigma, float maxRange) const; ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
+	float getStdDevWithinNSigma(float sigma, float maxRange) const; ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
+	float getMeanErrorWithinNSigma(float sigma, float maxRange) const; ///< returns the error on the mean calculated within abs(mean+ n * stdDev) to reject tails
+	float getSkewnessWithinNSigma(float sigma, float maxRange) const; ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
 
 	friend std::ostream& operator<< (std::ostream& os, const EcalCrystalTimingCalibration& s)
 	{
@@ -113,7 +114,7 @@ public:
 	bool isStableInEnergy(float min, float max, float step, std::vector< std::pair<float, EcalCrystalTimingCalibration*> > &ret);
 
 private:
-	void calcAllWithinNSigma(float n_sigma, float maxRange = 10); ///< calculate sum, sum2, sum3, n for time if time within n x stdDev and store the result
+	void calcAllWithinNSigma(float n_sigma, float maxRange = 10) const; ///< calculate sum, sum2, sum3, n for time if time within n x stdDev and store the result
 	// since the values are stored, the calculation is done only once with only one loop over the events
 
 	/// \todo weighted average by timeError
