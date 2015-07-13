@@ -322,7 +322,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 
 		unsigned int ds = DS_NONE;
 		//TODO: This probably shouldn't be commented out. Move the stat check into the individual functions?
-		//if(calibRecHit_itr->second.num() > 50) {
+		if(calibRecHit_itr->second.num() > 50) {
 			// check the asymmetry of the distribution: if asymmetric, dump the full set of events for further offline studies
 			if(fabs(calibRecHit_itr->second.getSkewnessWithinNSigma(n_sigma, 10)) > _maxSkewnessForDump)  {
 				ds |= DS_HIGH_SKEW;
@@ -336,7 +336,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 				ds |= DS_UNSTABLE_EN;
 			}
 			FillEnergyStabilityHists(calibRecHit_itr, energyStability);
-		//}
+		}
 
 		unsigned int elecID = getElecID(calibRecHit_itr->first);
 		if( abs(_HWCalibrationMap[elecID].mean()) > HW_UNIT * 1.5)
