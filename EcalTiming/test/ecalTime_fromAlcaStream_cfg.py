@@ -143,6 +143,10 @@ process.source = cms.Source("PoolSource",
  	 fileNames = cms.untracked.vstring(options.files),
 )
 
+if(len(options.jsonFile) > 0):
+	import FWCore.PythonUtilities.LumiList as LumiList
+	process.source.lumisToProcess = LumiList.LumiList(filename = options.jsonFile).getVLuminosityBlockRange()
+
 # process.source = cms.Source(
 #     "PoolSource",
 #     skipEvents = cms.untracked.uint32(0),
