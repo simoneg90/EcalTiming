@@ -30,9 +30,11 @@ private:
 	unsigned long int _num; ///< number of timingEvents;
 
 	float _sumE; ///< scalar sum of the energy of each timingEvent: needed for average energy
+	bool _storingEvents;
 
 	mutable std::map<float, float> _sumWithinNSigma, _sum2WithinNSigma, _sum3WithinNSigma, _sumEWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
 	mutable std::map<float, unsigned int> _numWithinNSigma; ///< variables for calculation of mean, stdDev within n-times the origina stdDev (to remove tails)
+
 
 	std::vector<EcalTimingEvent> timingEvents; ///< vector containing  all the events for this crystal
 	std::vector<EcalTimingEvent>::iterator maxChi2Itr;
@@ -42,7 +44,7 @@ public:
 	/// default constructor
 	EcalCrystalTimingCalibration(bool weightMean = true) :
 		//_detId(),
-		_sum(0), _sum2(0), _num(0), _sumE(0)
+		_sum(0), _sum2(0), _num(0), _sumE(0), _storingEvents(true)
 		//totalChi2(-1),
 		//useWeightedMean(weightMean)
 	{
@@ -121,12 +123,13 @@ private:
 	/// \todo weighted average by timeError
 	bool insertEvent(EcalTimingEvent te_, bool storeEvent)
 	{
+		if(!storeEvent) _storingEvents = false;
 		if(te_.timeError() > 0 && te_.timeError() < 1000 && te_.timeError() < 3) { //exclude values with wrong timeError estimation
 			_sum += te_.time();
 			_sum2 += te_.time() * te_.time();
 			_sumE += te_.energy();
 			_num++;
-			if(storeEvent)
+			if(_storingEvents)
 				timingEvents.push_back(te_);
 			//updateChi2();
 			return true;

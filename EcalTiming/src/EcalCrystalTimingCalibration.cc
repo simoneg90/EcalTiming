@@ -42,6 +42,11 @@ float EcalCrystalTimingCalibration::getSkewnessWithinNSigma(float n_sigma, float
 // store the results such that you do only one loop over the events
 void EcalCrystalTimingCalibration::calcAllWithinNSigma(float n_sigma, float maxRange) const
 {
+	//std::cout << timingEvents.size() << ' ' << _storingEvents;
+	//std::cout << *this << std::endl;
+	//assert(timingEvents.size() != 0 || !_storingEvents);
+	assert(timingEvents.size() == num() || !_storingEvents);
+
 	float range = std::min(maxRange, stdDev() * n_sigma);
 
 	_sumWithinNSigma[n_sigma] = 0.;
@@ -84,13 +89,13 @@ bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float 
 	}
 
 	for( auto it : cutLevels) {
-		float mean_ = it.second->getMeanWithinNSigma(2,10);
-		float meanError_ = it.second->getMeanErrorWithinNSigma(2,10);
+		float mean_ = it.second->mean();
+		float meanError_ = it.second->meanError();
 		
-		float orig_mean = getMeanWithinNSigma(2,10);
-		float orig_meanError = getMeanErrorWithinNSigma(2,10);
+		float orig_mean = mean();
+		float orig_meanError = meanError();
 
-		if(it.second->getNumWithinNSigma(2,10) < 30 ) break; // low statistics so move on.
+		if(it.second->num() < 30 ) break; // low statistics so move on.
 		if( meanError_ > 1.41 * orig_meanError) break; // does not make any sense to continue if the error is too high
 
 		if(abs(orig_mean - mean_) > orig_meanError ) return false; /// \todo define a better criterium
@@ -102,10 +107,23 @@ bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float 
 
 void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int ix_, int iy_, int iz_, unsigned int elecID_, int iRing_) const
 {
-	Float_t time(getMeanWithinNSigma(2,10));
-  	Float_t timeError(getMeanErrorWithinNSigma(2,10));
+	Float_t time;
+  	Float_t timeError;
+	UInt_t  n;
+	if(_storingEvents)
+	{
+		time = getMeanWithinNSigma(2,10);
+  		timeError = getMeanErrorWithinNSigma(2,10);
+		n = getNumWithinNSigma(2,10);
+	}
+	else
+	{
+		time = mean();
+  		timeError = meanError();
+		n = num();
+	}
+
 	Float_t energy(meanE());
-	UInt_t  n(getNumWithinNSigma(2,10));
 	UInt_t  rawid(rawid_);
 	Short_t  ix(ix_);
  	UShort_t iy(iy_); 
