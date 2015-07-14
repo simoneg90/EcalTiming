@@ -1,6 +1,13 @@
 #include "EcalTiming/EcalTiming/interface/EcalCrystalTimingCalibration.h"
 #include <cassert>
 
+float EcalCrystalTimingCalibration::getNumWithinNSigma(float n_sigma, float maxRange) const
+{
+
+	if(_numWithinNSigma.count(n_sigma) == 0) calcAllWithinNSigma(n_sigma, maxRange);
+	return _numWithinNSigma[n_sigma];
+}
+
 float EcalCrystalTimingCalibration::getMeanWithinNSigma(float n_sigma, float maxRange) const
 {
 
@@ -83,7 +90,7 @@ bool EcalCrystalTimingCalibration::isStableInEnergy(float min, float max, float 
 		float orig_mean = getMeanWithinNSigma(2,10);
 		float orig_meanError = getMeanErrorWithinNSigma(2,10);
 
-		if(it.second->_numWithinNSigma[2] < 30 ) break; // low statistics so move on.
+		if(it.second->getNumWithinNSigma(2,10) < 30 ) break; // low statistics so move on.
 		if( meanError_ > 1.41 * orig_meanError) break; // does not make any sense to continue if the error is too high
 
 		if(abs(orig_mean - mean_) > orig_meanError ) return false; /// \todo define a better criterium
@@ -98,7 +105,7 @@ void EcalCrystalTimingCalibration::dumpCalibToTree(TTree *tree, int rawid_, int 
 	Float_t time(getMeanWithinNSigma(2,10));
   	Float_t timeError(getMeanErrorWithinNSigma(2,10));
 	Float_t energy(meanE());
-	UInt_t  n(num());
+	UInt_t  n(getNumWithinNSigma(2,10));
 	UInt_t  rawid(rawid_);
 	Short_t  ix(ix_);
  	UShort_t iy(iy_); 

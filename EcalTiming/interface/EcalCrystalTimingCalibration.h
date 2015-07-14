@@ -79,6 +79,7 @@ public:
 
 	float getMeanWithinNSigma(float sigma, float maxRange) const; ///< returns the mean time within abs(mean+ n * stdDev) to reject tails
 	float getStdDevWithinNSigma(float sigma, float maxRange) const; ///< returns the stdDev calculated within abs(mean+ n * stdDev) to reject tails
+	float getNumWithinNSigma(float sigma, float maxRange) const; ///< returns the num calculated within abs(mean+ n * stdDev) to reject tails
 	float getMeanErrorWithinNSigma(float sigma, float maxRange) const; ///< returns the error on the mean calculated within abs(mean+ n * stdDev) to reject tails
 	float getSkewnessWithinNSigma(float sigma, float maxRange) const; ///< returns the skewness calculated within abs(mean+ n * stdDev) to reject tails
 
