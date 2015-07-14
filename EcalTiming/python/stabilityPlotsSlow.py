@@ -16,6 +16,7 @@ elif filename.startswith("output"):
 	# use same path as input file with output -> plots
 	outdir = os.path.normpath(os.path.join("plots" ,'/'.join(filename.split('/')[1:-1])))
 
+outdir = os.path.join(outdir, 'stability')
 outdir_backup = os.path.join(outdir, 'backup')
 
 def mkdir_p(path):
