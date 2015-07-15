@@ -57,7 +57,8 @@ do
 	filelist=`echo ${filelist}| sed 's| |,|g;s|,$||'`
 	echo ${filelist}
 
-	jsonFile=/afs/cern.ch/user/p/phansen/public/ecal-timing/ECALJSON/files/Cert_All_13TeV_PromptReco_Collisions15_ECALonly_JSON.txt
+	jsonFile=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/json_ecalonly/251022-251562-Prompt-pfgEcal.json
+
 	if [ "$BATCH" == "YES" ]
 	then
 		bsub -oo ${OUTDIR}/stdout.log -eo ${OUTDIR}/stderr.log -R "rusage[mem=4000]" -q 2nd "cd $PWD; eval \`scramv1 runtime -sh\`; 
