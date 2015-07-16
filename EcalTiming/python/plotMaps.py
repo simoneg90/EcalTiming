@@ -81,17 +81,29 @@ def initEvsT(name, title, iz):
 	h.SetYTitle("Time [ns]")
 	return h
 
-def initHists(hist_dict, init_func, key, name, title):
+def initHists(prefix,hist_dict, init_func, key, name, title):
 	if key in hist_dict:
 		return
 	iz = key
-	hist_dict[key] = init_func(name, title, iz)
+	hist_dict[key] = init_func(prefix + name, title, iz)
+
+def addFitToPlot(h):
+	fit = ROOT.TF1("gaus","gaus")
+	h.Fit(fit, "Q")
+	mu = fit.GetParameter(1)
+	sigma = fit.GetParameter(2)
+	label = ROOT.TPaveText(.5, .7, .9, .9, "NDC")
+	label.AddText("#mu = %.3f" % mu)
+	label.AddText("#sigma = %.3f" % sigma)
+	label.Draw()
+	return mu,sigma
 
 
-def plotMaps(file, tree, outdir):
+def plotMaps(tree, outdir, shortTree = False, prefix="", invertTime = True):
 	c = ROOT.TCanvas()
 	# dictionaries to store histograms
 	time = dict()
+	time_nooffset = dict()
 	occupancy = dict()
 	energy = dict()
 	iRing = dict()
@@ -100,28 +112,45 @@ def plotMaps(file, tree, outdir):
 	counter = 0
 
 	print "Found", tree.GetEntries(), "entries"
-	total_rechits = 0
 	if tree.GetEntries() == 0: sys.exit(-1)
+	
+	offset = dict()
+	for iz in detectors:
+		if shortTree:
+			tree.Draw("time>>temp%d(50,-5,5)" % iz,"iz == %d" % iz)
+		else:
+			tree.Draw("time>>temp%d(50,-5,5)" % iz,"iz == %d && num != 0" % iz)
+		h = ROOT.gDirectory.FindObject("temp%d" % iz)
+		offset[iz],__ = addFitToPlot(h)
+		c.SaveAs(outdir + '/' + detectors[iz] + "_1d_noffset.png")
+
 	for event in tree:
 		if not counter % (tree.GetEntries()/10): print counter, '/', tree.GetEntries()
 		counter += 1
-		if event.num == 0: continue
-		total_rechits += event.num
+		if not shortTree:
+			if event.num == 0: continue
+
 		# make dictionary key
-		iz = ord(event.iz)
-		if iz == 255: iz = -1
+		if type(event.iz) == type("s"):
+			iz = ord(event.iz)
+			if iz == 255: iz = -1
+		else:
+			iz = event.iz
 		key = iz
 		if math.isnan(event.time): 
 			print "Found nan", event.rawid, event.ix, event.iy, iz, event.num
 			continue
 		# initialize histograms (if they haven't been made yet
-		initHists(time, initMap, key, "time", "Time [ns]")
-		initHists(occupancy, initMap, key, "occupancy", "Occupancy")
-		initHists(energy, initMap, key, "energy", "Energy [GeV]")
+		initHists(prefix,time, initMap, key, "time", "Time [ns]")
+		initHists(prefix,time_nooffset, initMap, key, "time_nooffset", "Time [ns]")
+		initHists(prefix,time1d, inittime1d, key, "time1d", "time1d")
 
-		initHists(iRing, initiRing, key, "iRing", "iRing")
-		initHists(time1d, inittime1d, key, "time1d", "time1d")
-		initHists(EvsT, initEvsT, key, "EvsT", "EvsT")
+		if not shortTree:
+			initHists(prefix,occupancy, initMap, key, "occupancy", "Occupancy")
+			initHists(prefix,energy, initMap, key, "energy", "Energy [GeV]")
+			initHists(prefix,iRing, initiRing, key, "iRing", "iRing")
+			initHists(prefix,EvsT, initEvsT, key, "EvsT", "EvsT")
+
 		
 		# fill histograms
 		if iz == 0:
@@ -131,25 +160,38 @@ def plotMaps(file, tree, outdir):
 			x = event.ix
 			y = event.iy
 		
+		if invertTime:
+			t = -(event.time - offset[iz])
+		else:
+			t = event.time - offset[iz]
 
-		time[key].Fill(x, y, event.time)
-		occupancy[key].Fill(x, y, event.num)
-		energy[key].Fill(x, y, event.energy)
+		time[key].Fill(x, y, t)
+		time_nooffset[key].Fill(x, y, event.time)
+		time1d[key].Fill(t)
 
-		iRing[key].Fill(event.iRing, event.time)
-		time1d[key].Fill(event.time)
-		EvsT[key].Fill(event.energy, event.time)
+		if not shortTree:
+			occupancy[key].Fill(x, y, event.num)
+			energy[key].Fill(x, y, event.energy)
+			EvsT[key].Fill(event.energy, t)
+			iRing[key].Fill(event.iRing, t)
 
-	print "Run contained",total_rechits, "rechits" 
 	c = ROOT.TCanvas()
 	for key in time:
 		time[key].SetAxisRange(-10, 10, "Z")
 		time[key].SetZTitle("[ns]")
 		time[key].Draw("colz")
 		c.SaveAs(outdir + "/" + time[key].GetName() + ".png")
+		time[key].SaveAs(outdir + "/" + time[key].GetName() + ".root")
+
+	for key in time_nooffset:
+		time_nooffset[key].SetAxisRange(-10, 10, "Z")
+		time_nooffset[key].SetZTitle("[ns]")
+		time_nooffset[key].Draw("colz")
+		c.SaveAs(outdir + "/" + time_nooffset[key].GetName() + ".png")
 
 	c.SetLogz(True)
-	occu_max = max( [ occupancy[key].GetMaximum() for key in occupancy])
+	if occupancy:
+		occu_max = max( [ occupancy[key].GetMaximum() for key in occupancy])
 	for key in occupancy:
 		occupancy[key].SetAxisRange(0, occu_max, "Z")
 		occupancy[key].SetZTitle("Events")
@@ -157,7 +199,8 @@ def plotMaps(file, tree, outdir):
 		c.SaveAs(outdir + "/" + occupancy[key].GetName() + ".png")
 
 	c.SetLogz(False)
-	en_max = max( [ energy[key].GetMaximum() for key in energy])
+	if energy:
+		en_max = max( [ energy[key].GetMaximum() for key in energy])
 	en_max = 5.0
 	for key in energy:
 		energy[key].Draw("colz")
@@ -178,7 +221,10 @@ def plotMaps(file, tree, outdir):
 	ROOT.gStyle.SetOptStat(1111)
 	for key in time1d:
 		time1d[key].Draw()
+		addFitToPlot(time1d[key])
 		c.SaveAs(os.path.join(outdir, time1d[key].GetName() + ".png"))
+	
+	return time
 
 if __name__ == "__main__":
 
@@ -206,7 +252,31 @@ if __name__ == "__main__":
 
 	file = ROOT.TFile.Open(filename)
 	tree = file.Get("TriggerResults/EcalSplashTiming_0/timingTree")
-	plotMaps(file, tree, outdir)
+	time = plotMaps(tree, outdir)
 
+	from EcalTiming.EcalTiming.txt2tree import txt2tree
+
+	#input = "/afs/cern.ch/user/p/phansen/public/ecal-timing/dump_EcalTimeCalibConstants_v07_offline__since_00204623_till_4294967295.dat"
+	#treename = "old_calib"
+	#format = "ix:I,iy:I,iz:I,time:F,timeError:F,rawid:I"
+
+	oldcalib_outdir = "plots/oldcalib"
+	mkdir_p(oldcalib_outdir )
+	shutil.copy("plots/index.php", oldcalib_outdir)
+
+	#tree = txt2tree(input,treename,format)
+
+	file = ROOT.TFile.Open("output.root")
+	tree = file.Get("MyTree")
+	oldtime = plotMaps(tree, oldcalib_outdir, True, prefix = "old", invertTime = False)
+
+	for iz in time:
+		h = initMap("calib_shift", "Calibration Shift",iz)
+		print time[iz], oldtime[iz]
+		h.Add(time[iz], oldtime[iz], 1, -1)
+		h.SetAxisRange(-10, 10, "Z")
+		h.SetZTitle("[ns]")
+		h.Draw("colz")
+		c.SaveAs(outdir + "/" + h.GetName() + ".png")
 
 

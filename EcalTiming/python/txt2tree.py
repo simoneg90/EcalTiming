@@ -17,8 +17,7 @@ type_map = {
 		"O": "i",
 }
 
-def txt2tree(input,output,tree_path,format):
-	file = ROOT.TFile.Open(output,"RECREATE")
+def txt2tree(input,tree_path,format):
 	tree = ROOT.TTree(tree_path,"Tree made from " + input)
 	types = [a.split(':') for a in format.split(',')]
 	ncolumns = len(types)
@@ -41,7 +40,7 @@ def txt2tree(input,output,tree_path,format):
 					xtype = float
 				data[i][0] = xtype(x)
 			tree.Fill()
-	tree.Write()
+	return tree
 
 
 
@@ -59,4 +58,7 @@ if __name__ == "__main__" :
 	tree_path = sys.argv[3]
 	format = sys.argv[4]
 
-	txt2tree(input,output,tree_path,format)
+	tree = txt2tree(input,tree_path,format)
+	file = ROOT.TFile.Open(output,"RECREATE")
+	tree.Write()
+	file.Write()
