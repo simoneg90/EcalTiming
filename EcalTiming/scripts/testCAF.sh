@@ -62,8 +62,7 @@ do
 	if [ "$BATCH" == "YES" ]
 	then
 		bsub -oo ${OUTDIR}/stdout.log -eo ${OUTDIR}/stderr.log -R "rusage[mem=4000]" -q 2nd "cd $PWD; eval \`scramv1 runtime -sh\`; 
-		cmsRun test/ecalTime_fromAlcaStream_cfg.py files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}-lsf.root maxEvents=${NEVENTS}
-		jsonFile=${jsonFile}
+		cmsRun test/ecalTime_fromAlcaStream_cfg.py files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}-lsf.root maxEvents=${NEVENTS} jsonFile=${jsonFile}
 		" || exit 1
 	else
 		cmsRun test/ecalTime_fromAlcaStream_cfg.py files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}.root maxEvents=${NEVENTS} \
