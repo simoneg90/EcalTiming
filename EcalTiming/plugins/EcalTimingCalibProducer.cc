@@ -398,8 +398,13 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
         //std::cout<<"Threshold: "<<_minRecHitEnergy+(0.5*iter)<<std::endl;
 	//check if rechit is valid
 	if(! recHit.checkFlags(_recHitFlags)) return false;
-	if( recHit.energy() < (_minRecHitEnergy+0.5*iter)) return false; //cambiato!!!
-	if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * (_minRecHitEnergy+0.5*iter)) return false;
+        //old version with energy
+	//if( recHit.energy() < (_minRecHitEnergy+0.5*iter)) return false; //cambiato!!!
+	//if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * (_minRecHitEnergy+0.5*iter)) return false;
+
+        //new version -- cut on chi^2
+        if( recHit.chi2()>40 && recHit.energy() < (_minRecHitEnergy+0.5*iter)) return false;  //Barrel
+        if(recHit.detid().subdetId() == EcalEndcap && recHit.chi2()>50 && recHit.energy() < 2 * (_minRecHitEnergy+0.5*iter)) return false;  //Endcap
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 	EcalTimingEvent timeEvent(recHit);
@@ -683,7 +688,7 @@ void EcalTimingCalibProducer::dumpCalibration(std::string filename)
 
 	for(unsigned int i = 0; i < _timeCalibConstants.endcapItems().size(); ++i) {
 		EEDetId id(EEDetId::detIdFromDenseIndex(i)); // this is a stupid thing that I'm obliged to do due to the stupid structure of the ECAL container
-		fout << id.ix() << "\t" << id.iy() << "\t" << id.zside() << "\t" << _timeCalibConstants.endcapItems()[i] << std::endl;
+		fout << id.ix() << "\t" << id.iy() << "\t" << id.zside() << "\t" << _timeCalibConstants.endcapItems()[i] << "\t 0"  << std::endl;//changed - last column put to 0 - before there wasn't anything so that the file had different number of columns...........!
 	}
 	fout.close();
 }

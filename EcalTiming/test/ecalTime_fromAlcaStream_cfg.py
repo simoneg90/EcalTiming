@@ -32,6 +32,11 @@ options.register('isSplash',
                  VarParsing.VarParsing.varType.int,
                  "0=false, 1=true"
                  )
+options.register('minEnergy',
+                  1.5,
+                  VarParsing.VarParsing.multiplicity.singleton,
+                  VarParsing.VarParsing.varType.float,
+                  "minRecHitEnergy for the first loop")#added
 ### setup any defaults you want
 streamName = "AlCaPhiSym"
 options.output="output/ecalTiming.root"
@@ -214,7 +219,7 @@ process.schedule = cms.Schedule(process.p) # , process.endp)
 
 evtPlots = True if options.isSplash else False
 process.looper = cms.Looper("EcalTimingCalibProducer",
-                            maxLoop = cms.uint32(2),
+                            maxLoop = cms.uint32(1),
                             isSplash = cms.bool(True if options.isSplash == 1 else  False),
                             makeEventPlots = cms.bool(evtPlots),
                             recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
@@ -222,7 +227,7 @@ process.looper = cms.Looper("EcalTimingCalibProducer",
                             recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
                             #recHitMinimumN = cms.uint32(10),
                             recHitMinimumN = cms.uint32(2),
-                            minRecHitEnergy = cms.double(1),
+                            minRecHitEnergy = cms.double(options.minEnergy),
                             minEntries = cms.uint32(1),
                             globalOffset = cms.double(options.offset),
                             produceNewCalib = cms.bool(True),
