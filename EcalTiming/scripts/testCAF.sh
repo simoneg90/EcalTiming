@@ -1,8 +1,12 @@
 RUNLIST="243479 243484 243506"
 RUNLIST="248030"
 RUNLIST=`cat runlist`
+RUNLIST=251244 251251 251252 251521 251522 251548 251559 251560 251561 251562
+
 STREAM=AlCaPhiSym
 NEVENTS=-1
+QUEUE=2nd
+DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming
 
 for i in "$@"
 do
@@ -20,8 +24,16 @@ case $i in
     NEVENTS="${i#*=}"
     shift # past argument=value
     ;;
+    -q=*|--queue=*)
+    QUEUE="${i#*=}"
+    shift # past argument=value
+    ;;
     -b|--batch)
     BATCH=YES
+    shift # past argument with no value
+    ;;
+    --split)
+    SPLIT=YES
     shift # past argument with no value
     ;;
     *)
@@ -35,11 +47,11 @@ for RUN in ${RUNLIST}
 do
 
 	echo "=== RUN = ${RUN}"
-	OUTDIR=output/${STREAM}-${RUN}/
+	OUTDIR=$DIR/${STREAM}-${RUN}/
 	mkdir -p ${OUTDIR}
 
 	#filelist=`das_client.py --query="file dataset=/MinimumBias/Commissioning2015-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
-	nfiles=`das_client.py --query="file dataset=/AlCaPhiSym/Run2015B-v1/RAW run=${RUN} | count(file.name)" | sed '2 d'`
+	nfiles=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN} | count(file.name)" | sed '2 d'`
 	nfiles=${nfiles:19}
 
 	if ! [[ $nfiles =~ ^[0-9]+$ ]]; then
@@ -48,26 +60,34 @@ do
 	fi
 
 	echo Will run over $nfiles files
-	filelist=`das_client.py --query="file dataset=/AlCaPhiSym/Run2015B-v1/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
+	filelist=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
 	# for file in ${filelist}
 	# do
 	# das_client.py --query="file=${file} | sum(file.nevents)"
 	# done
 
-	filelist=`echo ${filelist}| sed 's| |,|g;s|,$||'`
-	echo ${filelist}
-
-	jsonFile=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/json_ecalonly/251022-251562-Prompt-pfgEcal.json
-
-	if [ "$BATCH" == "YES" ]
+	if [ "$SPLIT" != "YES" ]
 	then
-		bsub -oo ${OUTDIR}/stdout.log -eo ${OUTDIR}/stderr.log -R "rusage[mem=4000]" -q 2nd "cd $PWD; eval \`scramv1 runtime -sh\`; 
-		cmsRun test/ecalTime_fromAlcaStream_cfg.py files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}-lsf.root maxEvents=${NEVENTS} jsonFile=${jsonFile}
-		" || exit 1
-	else
-		cmsRun test/ecalTime_fromAlcaStream_cfg.py files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}.root maxEvents=${NEVENTS} \
-		jsonFile=${jsonFile}
+		echo Submitting one file per run
+		filelist=`echo ${filelist}| sed 's| |,|g;s|,$||'`
 	fi
+	
+	jsonFile=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/json_ecalonly/251022-251562-Prompt-pfgEcal-noLaserProblem.json
+
+	i=0
+	for file in $filelist
+	do
+		if [ "$BATCH" == "YES" ]
+		then
+			bsub -oo ${OUTDIR}/stdout.log -eo ${OUTDIR}/stderr.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; 
+			cmsRun test/recoAlcaStream_cfg.py files=${file} output=${OUTDIR}/ecalTiming-${RUN}-$i.root maxEvents=${NEVENTS} jsonFile=${jsonFile}
+			" || exit 1
+		else
+			cmsRun test/recoAlcaStream_cfg.py files=${file} output=${OUTDIR}/ecalTiming-${RUN}-$i.root maxEvents=${NEVENTS} \
+			jsonFile=${jsonFile}
+		fi
+		let i=i+1
+	done
 
 done
 exit 0
