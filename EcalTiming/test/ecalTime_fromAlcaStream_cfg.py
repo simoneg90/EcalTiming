@@ -205,8 +205,8 @@ if(options.isSplash==0):
     process.digiStep = cms.Sequence()
 
 process.p = cms.Path( process.filter #+ process.preScaler 
-                      + process.digiStep 
-                      + process.reco_step
+#                      + process.digiStep 
+#                      + process.reco_step
                       )
 
 process.endp = cms.EndPath(process.RECOoutput)
