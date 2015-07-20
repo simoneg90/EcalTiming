@@ -99,11 +99,10 @@ def addFitToPlot(h):
 	return mu,sigma
 
 
-def plotMaps(tree, outdir, shortTree = False, prefix="", invertTime = True):
-	c = ROOT.TCanvas()
+def plotMaps(tree, outdir, prefix="", invertTime = True, diffToOldCalib = False):
+	c = ROOT.TCanvas("c","c",1000,720)
 	# dictionaries to store histograms
 	time = dict()
-	time_nooffset = dict()
 	occupancy = dict()
 	energy = dict()
 	iRing = dict()
@@ -116,19 +115,20 @@ def plotMaps(tree, outdir, shortTree = False, prefix="", invertTime = True):
 	
 	offset = dict()
 	for iz in detectors:
-		if shortTree:
-			tree.Draw("time>>temp%d(50,-5,5)" % iz,"iz == %d" % iz)
-		else:
-			tree.Draw("time>>temp%d(50,-5,5)" % iz,"iz == %d && num != 0" % iz)
+		tree.Draw("time>>temp%d(50,-5,5)" % iz,"iz == %d && num != 0" % iz)
 		h = ROOT.gDirectory.FindObject("temp%d" % iz)
 		offset[iz],__ = addFitToPlot(h)
 		c.SaveAs(outdir + '/' + detectors[iz] + "_1d_noffset.png")
 
+	if diffToOldCalib:
+		suffix = "_rel_2012"
+		from EcalTiming.EcalTiming.loadOldCalib import getCalib
+		oldCalib = getCalib()
+
 	for event in tree:
 		if not counter % (tree.GetEntries()/10): print counter, '/', tree.GetEntries()
 		counter += 1
-		if not shortTree:
-			if event.num == 0: continue
+		if event.num == 0: continue
 
 		# make dictionary key
 		if type(event.iz) == type("s"):
@@ -142,14 +142,12 @@ def plotMaps(tree, outdir, shortTree = False, prefix="", invertTime = True):
 			continue
 		# initialize histograms (if they haven't been made yet
 		initHists(prefix,time, initMap, key, "time", "Time [ns]")
-		initHists(prefix,time_nooffset, initMap, key, "time_nooffset", "Time [ns]")
 		initHists(prefix,time1d, inittime1d, key, "time1d", "time1d")
 
-		if not shortTree:
-			initHists(prefix,occupancy, initMap, key, "occupancy", "Occupancy")
-			initHists(prefix,energy, initMap, key, "energy", "Energy [GeV]")
-			initHists(prefix,iRing, initiRing, key, "iRing", "iRing")
-			initHists(prefix,EvsT, initEvsT, key, "EvsT", "EvsT")
+		initHists(prefix,occupancy, initMap, key, "occupancy", "Occupancy")
+		initHists(prefix,energy, initMap, key, "energy", "Energy [GeV]")
+		initHists(prefix,iRing, initiRing, key, "iRing", "iRing")
+		initHists(prefix,EvsT, initEvsT, key, "EvsT", "EvsT")
 
 		
 		# fill histograms
@@ -160,34 +158,30 @@ def plotMaps(tree, outdir, shortTree = False, prefix="", invertTime = True):
 			x = event.ix
 			y = event.iy
 		
+		t = event.time - offset[iz]
+
+		if diffToOldCalib:
+			if event.rawid in oldCalib:
+				t += oldCalib[event.rawid]
+			else:
+				print "Rawid not found", event.rawid 
+
 		if invertTime:
-			t = -(event.time - offset[iz])
-		else:
-			t = event.time - offset[iz]
+			t = -t
 
 		time[key].Fill(x, y, t)
-		time_nooffset[key].Fill(x, y, event.time)
 		time1d[key].Fill(t)
 
-		if not shortTree:
-			occupancy[key].Fill(x, y, event.num)
-			energy[key].Fill(x, y, event.energy)
-			EvsT[key].Fill(event.energy, t)
-			iRing[key].Fill(event.iRing, t)
+		occupancy[key].Fill(x, y, event.num)
+		energy[key].Fill(x, y, event.energy)
+		EvsT[key].Fill(event.energy, t)
+		iRing[key].Fill(event.iRing, t)
 
-	c = ROOT.TCanvas()
 	for key in time:
 		time[key].SetAxisRange(-10, 10, "Z")
 		time[key].SetZTitle("[ns]")
 		time[key].Draw("colz")
 		c.SaveAs(outdir + "/" + time[key].GetName() + ".png")
-		time[key].SaveAs(outdir + "/" + time[key].GetName() + ".root")
-
-	for key in time_nooffset:
-		time_nooffset[key].SetAxisRange(-10, 10, "Z")
-		time_nooffset[key].SetZTitle("[ns]")
-		time_nooffset[key].Draw("colz")
-		c.SaveAs(outdir + "/" + time_nooffset[key].GetName() + ".png")
 
 	c.SetLogz(True)
 	if occupancy:
@@ -233,12 +227,19 @@ if __name__ == "__main__":
 	filename = sys.argv[1]
 
 	outdir = "plots"
+
+	print sys.argv
 	if len(sys.argv) > 2:
 		outdir = sys.argv[2]
 	elif filename.startswith("output"):
 		# use same path as input file with output -> plots
 		outdir = os.path.normpath(os.path.join("plots" , '/'.join(filename.split('/')[1: -1])))
+	
+	diffToOldCalib = True
 
+	if diffToOldCalib:
+		outdir += "_rel_2012"
+	
 	def mkdir_p(path):
 		try:
 			os.makedirs(path)
@@ -252,31 +253,5 @@ if __name__ == "__main__":
 
 	file = ROOT.TFile.Open(filename)
 	tree = file.Get("TriggerResults/EcalSplashTiming_0/timingTree")
-	time = plotMaps(tree, outdir)
-
-	from EcalTiming.EcalTiming.txt2tree import txt2tree
-
-	#input = "/afs/cern.ch/user/p/phansen/public/ecal-timing/dump_EcalTimeCalibConstants_v07_offline__since_00204623_till_4294967295.dat"
-	#treename = "old_calib"
-	#format = "ix:I,iy:I,iz:I,time:F,timeError:F,rawid:I"
-
-	oldcalib_outdir = "plots/oldcalib"
-	mkdir_p(oldcalib_outdir )
-	shutil.copy("plots/index.php", oldcalib_outdir)
-
-	#tree = txt2tree(input,treename,format)
-
-	file = ROOT.TFile.Open("output.root")
-	tree = file.Get("MyTree")
-	oldtime = plotMaps(tree, oldcalib_outdir, True, prefix = "old", invertTime = False)
-
-	for iz in time:
-		h = initMap("calib_shift", "Calibration Shift",iz)
-		print time[iz], oldtime[iz]
-		h.Add(time[iz], oldtime[iz], 1, -1)
-		h.SetAxisRange(-10, 10, "Z")
-		h.SetZTitle("[ns]")
-		h.Draw("colz")
-		c.SaveAs(outdir + "/" + h.GetName() + ".png")
-
+	time = plotMaps(tree, outdir, diffToOldCalib=diffToOldCalib)
 

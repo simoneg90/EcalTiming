@@ -16,7 +16,14 @@ elif filename.startswith("output"):
 	# use same path as input file with output -> plots
 	outdir = os.path.normpath(os.path.join("plots" ,'/'.join(filename.split('/')[1:-1])))
 
-outdir = os.path.join(outdir, 'stability')
+diffToOldCalib = True
+
+if diffToOldCalib:
+	suffix = "_rel_2012"
+	from EcalTiming.EcalTiming.loadOldCalib import getCalib
+	oldCalib = getCalib()
+
+outdir = os.path.join(outdir, 'stability' + suffix)
 outdir_backup = os.path.join(outdir, 'backup')
 
 def mkdir_p(path):
@@ -89,6 +96,24 @@ iRing = dict()
 time1d = dict()
 counter = 0
 
+def addFitToPlot(h):
+	fit = ROOT.TF1("gaus","gaus")
+	h.Fit(fit, "Q")
+	mu = fit.GetParameter(1)
+	sigma = fit.GetParameter(2)
+	label = ROOT.TPaveText(.5, .7, .9, .9, "NDC")
+	label.AddText("#mu = %.3f" % mu)
+	label.AddText("#sigma = %.3f" % sigma)
+	label.Draw()
+	return mu,sigma
+
+offset = dict()
+for iz in detectors:
+	tree.Draw("time>>temp%d(50,-5,5)" % iz,"iz == %d && num != 0" % iz)
+	h = ROOT.gDirectory.FindObject("temp%d" % iz)
+	offset[iz],__ = addFitToPlot(h)
+	c.SaveAs(outdir + '/' + detectors[iz] + "_1d_nooffset.png")
+
 print "Found",tree.GetEntries(),"entries"
 if tree.GetEntries() == 0: sys.exit(-1)
 for event in tree:
@@ -117,12 +142,19 @@ for event in tree:
 		x = event.ix
 		y = event.iy
 
-	time[key].Fill(x, y, event.time)
+	t = event.time - offset[iz]
+	if diffToOldCalib:
+		if event.rawid in oldCalib:
+			t += oldCalib[event.rawid]
+		else:
+			print "Rawid not found", event.rawid 
+
+	time[key].Fill(x, y, t)
 	occupancy[key].Fill(x, y, event.num)
 	energy[key].Fill(x, y, event.energy)
 
-	iRing[key].Fill(float(event.iRing), event.time)
-	time1d[key].Fill(event.time)
+	iRing[key].Fill(float(event.iRing), t)
+	time1d[key].Fill(t)
 
 c = ROOT.TCanvas()
 for key in time:
@@ -148,21 +180,28 @@ for key in energy:
 	energy[key].SetZTitle("[GeV]")
 	c.SaveAs(outdir_backup + "/" + energy[key].GetName() + ".png")
 
-mg = ROOT.TMultiGraph()
-leg = ROOT.TLegend(0.1 ,0.7, 0.48, 0.9)
-leg.SetHeader("Mean time in iRing")
 colors = [ROOT.kBlack,ROOT.kRed,ROOT.kGreen,ROOT.kBlue,ROOT.kMagenta,ROOT.kGray]
-ic = 0
 
-for key in iRing:
-	graph = ROOT.TGraphErrors(iRing[key])
-	graph.SetLineColor(colors[ic % len(colors)])
-	leg.AddEntry(graph,"Step %d" % key[0])
-	ic+=1
-	mg.Add(graph)
+for iz in [-1,0,1]:
+	ic = 0
+	leg = ROOT.TLegend(0.15 ,0.15, 0.48, 0.35)
+	leg.SetNColumns(3)
+	leg.SetHeader("Mean time in iRing")
+	keys = sorted([ (cut,iz) for cut,i in time if i == iz])
+	mg = ROOT.TMultiGraph()
+	for i in range(1,len(keys)):
+		iRing_rel = initiRing("iRing_rel_%d_%d" % (i, i-1), "iRing Diff Step%d - Step%d" % (i, i-1), keys[i][1])
+		iRing_rel.Add(iRing[keys[i]],iRing[keys[i-1]], 1, -1)
 
-mg.Draw("AP")
-c.SaveAs(outdir + "/t-vs-iRing.png")
+		graph = ROOT.TGraphErrors(iRing_rel)
+		graph.SetLineColor(colors[ic % len(colors)])
+		leg.AddEntry(graph,"Step %d - %d" % (i,i-1), "le")
+		ic+=1
+		mg.Add(graph)
+
+	mg.Draw("AL")
+	leg.Draw()
+	c.SaveAs(outdir + "/" + iRing[key].GetName() + ".png")
 
 for key in time1d:
 	time1d[key].Draw()
@@ -183,7 +222,8 @@ for iz in [-1,0,1]:
 		
 		if i != 1:
 			hrel0 = initMap("time_rel_%d_%d" % (i, 0), "Time Diff Step%d - Step%d" % (i, 0), keys[i][1])
-			hrel.SetAxisRange(-.2,.2,"Z")
+			hrel0.SetAxisRange(-.2,.2,"Z")
+			hrel0.Add(time[keys[i]],time[keys[0]],1,-1)
 			hrel0.Draw("colz")
 			c.SaveAs(outdir + "/" + hrel0.GetName() + ".png")
 
