@@ -229,13 +229,17 @@ if __name__ == "__main__":
 	outdir = "plots"
 
 	print sys.argv
-	if len(sys.argv) > 2:
-		outdir = sys.argv[2]
-	elif filename.startswith("output"):
+	#if len(sys.argv) > 1:
+	#	outdir = sys.argv[1]
+	#elif filename.startswith("output"):
 		# use same path as input file with output -> plots
-		outdir = os.path.normpath(os.path.join("plots" , '/'.join(filename.split('/')[1: -1])))
+
+	outdir = os.path.normpath(os.path.join("plots" , '/'.join(filename.split('/')[1: -1])))
 	
-	diffToOldCalib = True
+	if len(sys.argv) > 2:
+		diffToOldCalib = bool(int(sys.argv[2]))
+	else:
+		diffToOldCalib = False
 
 	if diffToOldCalib:
 		outdir += "_rel_2012"
