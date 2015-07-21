@@ -64,8 +64,9 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "DataFormats/Common/interface/Handle.h"
-#include "FWCore/Framework/interface/LooperFactory.h"
-#include "FWCore/Framework/interface/ESProducerLooper.h"
+//#include "FWCore/Framework/interface/LooperFactory.h"
+//#include "FWCore/Framework/interface/ESProducerLooper.h"
+#include "FWCore/Framework/interface/EDFilter.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/ESProducts.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -124,14 +125,14 @@
 
 #include "EcalTiming/EcalTiming/interface/EcalTimeCalibrationMapFwd.h"
 
-class EcalTimingCalibProducer : public edm::ESProducerLooper
+class EcalTimingCalibProducer : public edm::EDFilter
 {
 
 private:
 	EcalTimeCalibrationMap _timeCalibMap; ///< calibration map: contains the time shift for each crystal
 	EventTimeMap _eventTimeMap;           ///< container of recHits passing selection in the event (reset at each event)
 	EcalHWCalibrationMap _HWCalibrationMap; //!<  The keys for this map are EcalElectronicIds with xtalid = stripid = 1
-	  														///< calibration map for the CCU's (Hardware Constants). 
+															///< calibration map for the CCU's (Hardware Constants). 
 
 	// For finding averages for specific eta ring
 	EcalCrystalTimingCalibration timeEEP; ///< global time calibration of EE+
@@ -148,11 +149,9 @@ public:
 	~EcalTimingCalibProducer();                        // default destructor
 
 
-	virtual void beginOfJob(const edm::EventSetup&);
-	virtual void startingNewLoop(unsigned int ) ;
-	virtual Status duringLoop(const edm::Event&, const edm::EventSetup&) ;
-	virtual Status endOfLoop(const edm::EventSetup&, unsigned int);
-	virtual void endOfJob();
+   virtual void beginJob() override;
+	virtual bool filter(edm::Event&, const edm::EventSetup&) override;
+   virtual void endJob() override;
 private:
 	// ----------member data ---------------------------
 	/** @name Input Parameters
@@ -188,60 +187,7 @@ private:
 	void initEventHists(TFileDirectory dir);
 	void initTree(TFileDirectory dir);
 
-	// Create calibration container objects -> to be used in beginOfJob
-	void createConstants(const edm::EventSetup& iSetup)
-	{
-
-		// time calib constants
-		edm::ESHandle<EcalTimeCalibConstants> ecalTimeCalibConstantsHandle;
-		iSetup.get<EcalTimeCalibConstantsRcd>().get( ecalTimeCalibConstantsHandle);
-		_timeCalibConstants = *ecalTimeCalibConstantsHandle;
-#ifdef DEBUG
-		// why they are 0 when setWhatProduced is uncommented? -> I've not found a way to read the default DB at iter 0
-		for(auto t_itr = _timeCalibConstants.begin(); t_itr != _timeCalibConstants.end() && t_itr - _timeCalibConstants.begin() < 10; ++t_itr) {
-			std::cout << "t_itr = " << *t_itr << std::endl;
-		}
-#endif
-		produceCalibConstants(iSetup.get<EcalTimeCalibConstantsRcd>());
-
-		// time calib errors
-		edm::ESHandle<EcalTimeCalibErrors> ecalTimeCalibErrorsHandle;
-		//iSetup.get<EcalTimeCalibErrorsRcd>().get( ecalTimeCalibErrorsHandle);
-		//_timeCalibErrors = *ecalTimeCalibErrorsHandle;
-		//produceCalibErrors(iSetup.get<EcalTimeCalibErrorsRcd>());
-
-		// time offset constant
-		edm::ESHandle<EcalTimeOffsetConstant> ecalTimeOffsetConstantHandle;
-		iSetup.get<EcalTimeOffsetConstantRcd>().get( ecalTimeOffsetConstantHandle);
-		_timeOffsetConstant = *ecalTimeOffsetConstantHandle;
-		produceOffsetConstant(iSetup.get<EcalTimeOffsetConstantRcd>());
-
-	}
-
 	EcalTimeCalibConstants _timeCalibConstants; ///< container of calibrations updated iter by iter
-	boost::shared_ptr<EcalTimeCalibConstants> _calibConstants; // corrections used during this iter
-	inline boost::shared_ptr<EcalTimeCalibConstants> produceCalibConstants(const EcalTimeCalibConstantsRcd& iRecord)
-	{
-		// new shared_ptr initialized with previous iter: _timeCalibConstants
-		_calibConstants = boost::shared_ptr<EcalTimeCalibConstants>( new EcalTimeCalibConstants(_timeCalibConstants) );
-		return  _calibConstants;
-	}
-
-	EcalTimeCalibErrors    _timeCalibErrors;
-	boost::shared_ptr<EcalTimeCalibErrors> _calibErrors;
-	inline boost::shared_ptr<EcalTimeCalibErrors>& produceCalibErrors(const EcalTimeCalibErrorsRcd& iRecord)
-	{
-		_calibErrors = boost::shared_ptr<EcalTimeCalibErrors>( new EcalTimeCalibErrors(_timeCalibErrors) );
-		return _calibErrors;
-	}
-
-	EcalTimeOffsetConstant _timeOffsetConstant;
-	boost::shared_ptr<EcalTimeOffsetConstant> _offsetConstant;
-	inline boost::shared_ptr<EcalTimeOffsetConstant> produceOffsetConstant(const EcalTimeOffsetConstantRcd& iRecord)
-	{
-		_offsetConstant = boost::shared_ptr<EcalTimeOffsetConstant>( new EcalTimeOffsetConstant(_timeOffsetConstant) );
-		return _offsetConstant;
-	}
 
 
 
@@ -249,11 +195,11 @@ private:
 	  \brief  If recHit passes the selection it is added to the list of recHits to be used for calibration
 
 	  The recHit is used (accepted) if:
-	    - recHit flag in the list of _recHitFlags defined in the config file
-	    - recHit energy in EB > _minRecHitEnergy defined in the config file
-	    - recHit energy in EE is x2 the threshold of EB
-	    - at each iteration the recHit threshold is raised by _minRecHitEnergyStep
-	    If the recHit is used, the time information is added to _eventTimeMap
+		 - recHit flag in the list of _recHitFlags defined in the config file
+		 - recHit energy in EB > _minRecHitEnergy defined in the config file
+		 - recHit energy in EE is x2 the threshold of EB
+		 - at each iteration the recHit threshold is raised by _minRecHitEnergyStep
+		 If the recHit is used, the time information is added to _eventTimeMap
 	*/
 	bool addRecHit(const EcalRecHit& recHit, EventTimeMap& eventTimeMap_);
 
@@ -267,7 +213,7 @@ private:
 	EcalTimingEvent correctGlobalOffset(const EcalTimingEvent& ev, int splashDir, float bunchCorr);
 
 	unsigned int getElecID(DetId id)
- 	{
+	{
 		return (elecMap_->getElectronicsId(id).rawId() >> 6) & 0x3FFF;
 	}
 	float getEnergyThreshold(const DetId detid)

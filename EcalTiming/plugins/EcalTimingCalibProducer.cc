@@ -52,11 +52,11 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
 	//the following line is needed to tell the framework what
 	// data is being produced
-	if(_produceNewCalib) {
-		setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
-//	setWhatProduced(this, &EcalTimingCalibProducer::produceCalibErrors);
-		setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
-	}
+	//if(_produceNewCalib) {
+	//	setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
+//	//setWhatProduced(this, &EcalTimingCalibProducer::produceCalibErrors);
+	//	setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
+	//}
 	//now do what ever other initialization is needed
 }
 
@@ -72,53 +72,16 @@ EcalTimingCalibProducer::~EcalTimingCalibProducer()
 // member functions
 //
 
-// ------------ method called to produce the data  ------------
-// std::shared_ptr<EcalTimeCalibConstants> EcalTimingCalibProducer::produce(const EcalTimeCalibConstantsRcd& iRecord)
-// {
-// 	using namespace edm::es;
-// 	//std::auto_ptr<EcalTimeCalibConstants> pMyType;
-// 	//return products(pMyType);
-// 	return NULL;
-// }
-
-
 
 // ------------ method called once per job just before starting to loop over events  ------------
-void EcalTimingCalibProducer::beginOfJob(const edm::EventSetup& iSetup)
+void EcalTimingCalibProducer::beginJob()
 {
 	std::cout << "Begin job: createConstants" << std::endl;
-	createConstants(iSetup);
-
-	//Get Geometry for Rings
-	edm::ESHandle<CaloGeometry> pG;
-	iSetup.get<CaloGeometryRecord>().get(pG);
-	EcalRingCalibrationTools::setCaloGeometry(&(*pG));
-	endcapGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
-	barrelGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
-
-	edm::ESHandle<EcalElectronicsMapping> hElecMap;
-	iSetup.get<EcalMappingRcd>().get(hElecMap);
-	elecMap_ = hElecMap.product();
-
-}
-
-// ------------ method called at the beginning of a new loop over the event  ------------
-// ------------ the argument starts at 0 and increments for each loop        ------------
-void EcalTimingCalibProducer::startingNewLoop(unsigned int iIteration)
-{
-	std::cout << "Starting new loop: " << iIteration << std::endl;
-/// save the iteration index
-	_iter = iIteration;
-#ifdef DEBUG
-	auto calib2_itr = _calibConstants->find(RAWIDCRY); //begin();
-	std::cout << "index\tcalibConstants\ttimeCalibConstants\n"
-	          << calib2_itr - _calibConstants->begin() << "\t" << *calib2_itr << "\t" << *(_timeCalibConstants.find(RAWIDCRY))
-	          << std::endl;
-#endif
+	//createConstants(iSetup);
 
 	// Initialize histograms at start of Loop
 	char histDirName[100];
-	sprintf(histDirName, "EcalSplashTiming_%d", iIteration);
+	sprintf(histDirName, "EcalSplashTiming");
 	// Make a new directory for Histograms for each loop
 	histDir_ = fileService_->mkdir( histDirName);
 
@@ -199,8 +162,18 @@ EcalTimingEvent EcalTimingCalibProducer::correctGlobalOffset(const EcalTimingEve
 }
 
 // ------------ called for each event in the loop.  The present event loop can be stopped by return kStop ------------
-EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+bool EcalTimingCalibProducer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+	//Get Geometry for Rings
+	edm::ESHandle<CaloGeometry> pG;
+	iSetup.get<CaloGeometryRecord>().get(pG);
+	EcalRingCalibrationTools::setCaloGeometry(&(*pG));
+	endcapGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
+	barrelGeometry_ =  pG->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
+
+	edm::ESHandle<EcalElectronicsMapping> hElecMap;
+	iSetup.get<EcalMappingRcd>().get(hElecMap);
+	elecMap_ = hElecMap.product();
 
 	// here the getByToken of the rechits
 	edm::Handle<EBRecHitCollection> ebRecHitHandle;
@@ -256,7 +229,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 	          << std::endl;
 #endif
 	// If we got less than the minimum recHits, continue -> this is to select events with enough activity
-	if(_eventTimeMap.size() < _recHitMin) return kContinue;
+	if(_eventTimeMap.size() < _recHitMin) return false;
 #ifdef DEBUG
 	std::cout << "[DUMP]\t" << timeEB << "\t"  << timeEEM << "\t" << timeEEP << std::endl;
 #endif
@@ -291,12 +264,12 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::duringLoop(const edm::E
 
 	// any etaRing check?
 	// any etaRing inter-calibration?
-	return kContinue;
+	return true;
 }
 
 
 // ------------ called at the end of each event loop. A new loop will occur if you return kContinue ------------
-EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::EventSetup&, unsigned int iLoop_)
+void EcalTimingCalibProducer::endJob()
 {
 	std::cout << "EndOfLoop " << std::endl;
 
@@ -318,7 +291,7 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 		FillCalibrationCorrectionHists(calibRecHit_itr); // histograms with shifts to be corrected at each step
 		FillHWCorrectionHists(calibRecHit_itr);
 		float correction =  - calibRecHit_itr->second.getMeanWithinNSigma(n_sigma, 10);  // to reject tails
-		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), (*_calibConstants)[calibRecHit_itr->first.rawId()] + correction);
+		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), correction);
 
 		unsigned int ds = DS_NONE;
 		//TODO: This probably shouldn't be commented out. Move the stat check into the individual functions?
@@ -380,21 +353,11 @@ EcalTimingCalibProducer::Status EcalTimingCalibProducer::endOfLoop(const edm::Ev
 	strftime(current_time, sizeof(current_time), "%Y-%m-%d.%X", &tstruct);
 
 	char filename[100];
-	sprintf(filename, "%s-%d.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str(), iLoop_); //text file holding constants
+	sprintf(filename, "%s.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str()); //text file holding constants
 	dumpCalibration(filename);
-	sprintf(filename, "%s-corr-%d.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str(), iLoop_); //text file holding constants
+	sprintf(filename, "%s-corr.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str()); //text file holding constants
 	dumpCorrections(filename);
 	// save the xml
-
-	if(iLoop_ >= _maxLoop - 1) return kStop;
-	++iLoop_;
-	return kContinue;
-}
-
-// ------------ called once each job just before the job ends ------------
-void
-EcalTimingCalibProducer::endOfJob()
-{
 }
 
 void EcalTimingCalibProducer::dumpCorrections(std::string filename)
@@ -616,4 +579,4 @@ void EcalTimingCalibProducer::initTree(TFileDirectory fdir)
 }
 
 //define this as a plug-in
-DEFINE_FWK_LOOPER(EcalTimingCalibProducer);
+DEFINE_FWK_MODULE(EcalTimingCalibProducer);

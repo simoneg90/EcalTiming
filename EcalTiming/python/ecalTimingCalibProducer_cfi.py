@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-looper = cms.Looper("EcalTimingCalibProducer",
+filter = cms.EDFilter("EcalTimingCalibProducer",
                     maxLoop = cms.uint32(1),
                     isSplash = cms.bool(False),
                     makeEventPlots = cms.bool(False),

@@ -115,8 +115,8 @@ process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
 
 # Dump Some event Content
-import FWCore.Modules.printContent_cfi
-process.dumpEv = FWCore.Modules.printContent_cfi.printContent.clone()
+#import FWCore.Modules.printContent_cfi
+#process.dumpEv = FWCore.Modules.printContent_cfi.printContent.clone()
 
 ### Print Out Some Messages
 process.MessageLogger = cms.Service("MessageLogger",
@@ -127,7 +127,7 @@ process.MessageLogger = cms.Service("MessageLogger",
     destinations = cms.untracked.vstring('cout')
 )
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(10000)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
@@ -192,27 +192,19 @@ process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 
 
-process.filter=cms.Sequence()
-if(options.isSplash==1):
-    process.filter+=process.spashesHltFilter
-    process.reco_step = cms.Sequence(process.caloCosmicOrSplashRECOSequence)
-else:
-    #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
-    process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
+#process.filter=cms.Sequence()
+#if(options.isSplash==1):
+#    process.filter+=process.spashesHltFilter
+#    process.reco_step = cms.Sequence(process.caloCosmicOrSplashRECOSequence)
+#else:
+#    #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+#    process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
 
 ### Process Full Path
 if(options.isSplash==0):
     process.digiStep = cms.Sequence()
 
-process.p = cms.Path( process.filter #+ process.preScaler 
-#                      + process.digiStep 
-#                      + process.reco_step
-                      )
 
-process.endp = cms.EndPath(process.RECOoutput)
-
-### Schedule ###
-process.schedule = cms.Schedule(process.p) # , process.endp) 
 
 evtPlots = True if options.isSplash else False
 
@@ -225,11 +217,16 @@ process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
 #ESLooperProducer looper is imported here:
 process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
-process.looper.isSplash= cms.bool(True if options.isSplash else False)
-process.looper.makeEventPlots=evtPlots
-process.looper.globalOffset = cms.double(options.offset)
-process.looper.outputDumpFile = process.TFileService.fileName
-process.looper.minRecHitEnergy = cms.double(0.5)
+process.filter.isSplash= cms.bool(True if options.isSplash else False)
+process.filter.makeEventPlots=evtPlots
+process.filter.globalOffset = cms.double(options.offset)
+process.filter.outputDumpFile = process.TFileService.fileName
+process.filter.minRecHitEnergy = cms.double(0.5)
+
+process.p = cms.Path( process.filter )
+### Schedule ###
+process.schedule = cms.Schedule(process.p) # , process.endp) 
+#process.endp = cms.EndPath(process.RECOoutput)
 
 processDumpFile = open('processDump.py', 'w')
 print >> processDumpFile, process.dumpPython()
