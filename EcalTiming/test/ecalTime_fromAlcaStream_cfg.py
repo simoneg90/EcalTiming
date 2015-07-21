@@ -214,6 +214,10 @@ process.p = cms.Path( process.filter #+ process.preScaler
 
 process.endp = cms.EndPath(process.RECOoutput)
 
+### Lumi-sections to process ###
+import FWCore.PythonUtilities.LumiList as LumiList
+process.source.lumisToProcess = LumiList.LumiList(filename = '/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/json_ecalonly/251022-251562-Prompt-pfgEcal-noLaserProblem.json').getVLuminosityBlockRange()
+
 ### Schedule ###
 process.schedule = cms.Schedule(process.p) # , process.endp) 
 
