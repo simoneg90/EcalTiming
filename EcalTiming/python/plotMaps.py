@@ -44,8 +44,8 @@ def inittime1d(name, title, iz):
 	elif iz == 1:
 		det = "EEP_"
 	else:
-		print "bad iz value", iz
-		return None
+		#print "bad iz value", iz
+		det = str(iz)
 	h = ROOT.TH1F(det + name, title, 50, -10, 10)
 	h.SetXTitle("Time [ns]")
 	h.SetYTitle("Events")
@@ -110,6 +110,11 @@ def plotMaps(tree, outdir, prefix=""):
 	iRing = dict()
 	time1d = dict()
 	EvsT = dict()
+
+	CCU = dict()
+	CCU_maps = dict()
+	CCU_err_maps = dict()
+	elec_map = dict()
 	counter = 0
 
 	print "Found", tree.GetEntries(), "entries"
@@ -151,6 +156,11 @@ def plotMaps(tree, outdir, prefix=""):
 		initHists(prefix,iRing, initiRing, key, "iRing", "iRing")
 		initHists(prefix,EvsT, initEvsT, key, "EvsT", "EvsT")
 
+		initHists(prefix,CCU, inittime1d, (event.elecID), "ccu_time", " CCU Time [ns]")
+		initHists(prefix,CCU_maps, initMap, key, "ccu_time_map", "CCU Map [ns]")
+		initHists(prefix,CCU_err_maps, initMap, key, "ccu_timeError_map", "CCU Error Map [ns]")
+		
+		elec_map[( event.ix, event.iy, iz)] = event.elecID
 		
 		# fill histograms
 		if iz == 0:
@@ -159,6 +169,7 @@ def plotMaps(tree, outdir, prefix=""):
 		else:
 			x = event.ix
 			y = event.iy
+
 		
 		t = event.time - offset[iz]
 
@@ -171,12 +182,36 @@ def plotMaps(tree, outdir, prefix=""):
 		EvsT[key].Fill(event.energy, t)
 		iRing[key].Fill(event.iRing, t)
 
+		CCU[event.elecID].Fill(t)
+
 		if event.rawid in oldCalib:
 			time_rel2012[key].Fill(x,y, t - oldCalib[event.rawid])
 		else:
 			print "Rawid not found", event.rawid 
 
 
+	for ix,iy,iz in elec_map:
+		if iz == 0:
+			x = iy
+			y = ix
+		else:
+			x = ix
+			y = iy
+		CCU_maps[iz].Fill(x,y,CCU[elec_map[(ix,iy,iz)]].GetMean())
+		CCU_err_maps[iz].Fill(x,y,CCU[elec_map[(ix,iy,iz)]].GetStdDev())
+
+	for key in CCU_maps:
+		CCU_maps[key].SetAxisRange(-2, 2, "Z")
+		CCU_maps[key].SetZTitle("[ns]")
+		CCU_maps[key].Draw("colz")
+		c.SaveAs(outdir + "/" + CCU_maps[key].GetName() + ".png")
+
+	for key in CCU_err_maps:
+		CCU_err_maps[key].SetAxisRange(0, 2, "Z")
+		CCU_err_maps[key].SetZTitle("[ns]")
+		CCU_err_maps[key].Draw("colz")
+		c.SaveAs(outdir + "/" + CCU_err_maps[key].GetName() + ".png")
+		
 	for key in time:
 		time[key].SetAxisRange(-10, 10, "Z")
 		time[key].SetZTitle("[ns]")
