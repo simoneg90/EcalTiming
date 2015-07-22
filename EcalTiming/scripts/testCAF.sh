@@ -1,13 +1,15 @@
 RUNLIST="243479 243484 243506"
 RUNLIST="248030"
 RUNLIST=`cat runlist`
-RUNLIST=251244 251251 251252 251521 251522 251548 251559 251560 251561 251562
+RUNLIST="251244 251251 251252 251521 251522 251548 251559 251560 251561 251562"
 
 STREAM=AlCaPhiSym
 NEVENTS=-1
 QUEUE=2nd
-DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming
+DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/round1
+CONFIG=test/ecalTime_fromAlcaStream_cfg.py
 
+FROMRECO=NO
 for i in "$@"
 do
 case $i in
@@ -36,6 +38,10 @@ case $i in
     SPLIT=YES
     shift # past argument with no value
     ;;
+    --fromreco)
+    FROMRECO=YES
+    shift # past argument with no value
+    ;;
     *)
             # unknown option
 		echo option $i not defined
@@ -50,25 +56,30 @@ do
 	OUTDIR=$DIR/${STREAM}-${RUN}/
 	mkdir -p ${OUTDIR}
 
-	#filelist=`das_client.py --query="file dataset=/MinimumBias/Commissioning2015-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
-	nfiles=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN} | count(file.name)" | sed '2 d'`
-	nfiles=${nfiles:19}
+	if [ "$FROMRECO" == "NO" ]
+	then
+		filelist=`das_client.py --query="file dataset=/MinimumBias/Commissioning2015-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
+		nfiles=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN} | count(file.name)" | sed '2 d'`
+		nfiles=${nfiles:19}
 
-	if ! [[ $nfiles =~ ^[0-9]+$ ]]; then
-		echo "No Files found"
+		if ! [[ $nfiles =~ ^[0-9]+$ ]]; then
+			echo "No Files found"
 		exit 1
-	fi
+		fi
 
-	echo Will run over $nfiles files
-	filelist=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
-	# for file in ${filelist}
-	# do
-	# das_client.py --query="file=${file} | sum(file.nevents)"
-	# done
+		#echo Will run over $nfiles files
+		filelist=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
+		# for file in ${filelist}
+		# do
+		# das_client.py --query="file=${file} | sum(file.nevents)"
+		# done
+	else
+		filelist=`grep ${RUN}  ~shervin/public/4peter/fileMap-sorted.dat  | cut -d ' ' -f2`
+	fi
 
 	if [ "$SPLIT" != "YES" ]
 	then
-		echo Submitting one file per run
+		echo Submitting one job per run
 		filelist=`echo ${filelist}| sed 's| |,|g;s|,$||'`
 	fi
 	
@@ -77,14 +88,14 @@ do
 	i=0
 	for file in $filelist
 	do
+		runcommand="cmsRun ${CONFIG} files=${filelist} output=${OUTDIR}/ecalTiming-${RUN}-$i.root maxEvents=${NEVENTS} jsonFile=${jsonFile}"
 		if [ "$BATCH" == "YES" ]
 		then
-			bsub -oo ${OUTDIR}/stdout.log -eo ${OUTDIR}/stderr.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; 
-			cmsRun test/recoAlcaStream_cfg.py files=${file} output=${OUTDIR}/ecalTiming-${RUN}-$i.root maxEvents=${NEVENTS} jsonFile=${jsonFile}
+			bsub -oo ${OUTDIR}/stdout-$i-${NEVENTS}.log -eo ${OUTDIR}/stderr-$i-${NEVENTS}.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; 
+			${runcommand}
 			" || exit 1
 		else
-			cmsRun test/recoAlcaStream_cfg.py files=${file} output=${OUTDIR}/ecalTiming-${RUN}-$i.root maxEvents=${NEVENTS} \
-			jsonFile=${jsonFile}
+			runcommand
 		fi
 		let i=i+1
 	done
