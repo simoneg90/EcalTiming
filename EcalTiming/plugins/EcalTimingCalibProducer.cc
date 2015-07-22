@@ -127,6 +127,9 @@ public:
 	EcalCrystalTimingCalibration timeEB;
 	float nearEndcapTime;
 	float farEndcapTime;
+        int OccupancyEB[171][361]={{0}}; //added
+        int OccupancyEEM[101][101]={{0}};
+        int OccupancyEEP[101][101]={{0}};
 
 	EcalTimingCalibProducer(const edm::ParameterSet&);
 	~EcalTimingCalibProducer();
@@ -272,6 +275,11 @@ private:
 	TH2F* RechitEnergyTimeEB;
 	TH2F* RechitEnergyTimeEEM;
 	TH2F* RechitEnergyTimeEEP;
+
+        //Occupancy plots
+        TH2D* OccupancyEB_;
+        TH2D* OccupancyEEM_;
+        TH2D* OccupancyEEP_;
 
 	EcalRingCalibrationTools _ringTools;
 	const CaloSubdetectorGeometry * endcapGeometry_;
@@ -419,13 +427,17 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit)
 			return false;
 		}
 		timeEB.add(timeEvent);
+                //Filling Occupancy array - added
+                OccupancyEB[id.ieta()+85][id.iphi()]+=1;
 	} else {
 		// create EEDetId
 		EEDetId id(recHit.detid());
 		if(id.zside() < 0) {
 			timeEEM.add(timeEvent);
+                        OccupancyEEM[id.ix()][id.iy()]+=1;
 		} else {
 			timeEEP.add(timeEvent);
+                        OccupancyEEP[id.ix()][id.iy()]+=1;
 		}
 	}
 	// Keep the recHitEventEnergy
@@ -707,6 +719,11 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 		TimeMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.mean()); // 2D time map
 		TimeErrorMapEB_->Fill(id.ieta(), id.iphi(), cal_itr->second.meanError());
 
+                //bin = OccupancyEB->GetBin(id.ieta(), id.iphi());
+                //std::cout<<"EB bin: "<<bin<<std::endl;
+                //OccupancyEB->AddBinContent(bin,1);
+                OccupancyEB_->Fill(id.ieta(),id.iphi(),OccupancyEB[id.ieta()+85][id.iphi()]);
+
 		RechitEneEB_->Fill(cal_itr->second.meanE());   // 1D histogram
 		RechitTimeEB_->Fill(cal_itr->second.mean()); // 1D histogram
 	} else {
@@ -716,6 +733,8 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 			EneMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.meanE());
 			TimeMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.mean());
 			TimeErrorMapEEM_->Fill(id.ix(), id.iy(), cal_itr->second.meanError());
+                        
+                        OccupancyEEM_->Fill(id.ix(), id.iy(), OccupancyEEM[id.ix()][id.iy()]);
 
 			RechitEneEEM_->Fill(cal_itr->second.meanE());
 			RechitTimeEEM_->Fill(cal_itr->second.mean());
@@ -723,6 +742,8 @@ void EcalTimingCalibProducer::FillCalibrationCorrectionHists(EcalTimeCalibration
 			EneMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.meanE());
 			TimeMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.mean());
 			TimeErrorMapEEP_->Fill(id.ix(), id.iy(), cal_itr->second.meanError());
+
+                        OccupancyEEP_->Fill(id.ix(), id.iy(), OccupancyEEP[id.ix()][id.iy()]);;
 
 			RechitEneEEP_->Fill(cal_itr->second.meanE());
 			RechitTimeEEP_->Fill(cal_itr->second.mean());
@@ -773,6 +794,12 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 	RechitEnergyTimeEEM = fdir.make<TH2F>("RechitEnergyTimeEEM", "RecHit Energy vs Time EE-;Rechit Energy[GeV]; Time[ns]; Events", 200, 0.0, 1000.0, 100, -15,30);
 	RechitEnergyTimeEEP = fdir.make<TH2F>("RechitEnergyTimeEEP", "RecHit Energy vs Time EE+;Rechit Energy[GeV]; Time[ns]; Events", 200, 0.0, 1000.0, 100, -15,30);
 	RechitEnergyTimeEB  = fdir.make<TH2F>("RechitEnergyTimeEB",  "RecHit Energy vs Time EB; Rechit Energy[GeV]; Time[ns]; Events", 200, 0.0, 100.0,  100, -15,30);
+
+        //added for Occupancy plots
+        OccupancyEB_  = fdir.make<TH2D>("OccupancyEB", "Occupancy EB", 171, -85, 86, 361, 1., 361.);
+        OccupancyEEM_ = fdir.make<TH2D>("OccupancyEEM", "Occupancy EE-", 100, 1, 101, 100, 1, 101);
+        OccupancyEEP_ = fdir.make<TH2D>("OccupancyEEP", "Occupancy EE+", 100, 1, 101, 100, 1, 101);
+        
 
 	if(_noisyXtals.size())
 	{
