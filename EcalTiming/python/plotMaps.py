@@ -99,10 +99,12 @@ def addFitToPlot(h):
 	return mu,sigma
 
 
-def plotMaps(tree, outdir, prefix="", invertTime = True, diffToOldCalib = False):
+def plotMaps(tree, outdir, prefix=""):
 	c = ROOT.TCanvas("c","c",1000,720)
 	# dictionaries to store histograms
 	time = dict()
+	time_rel2012 = dict()
+	timeError = dict()
 	occupancy = dict()
 	energy = dict()
 	iRing = dict()
@@ -120,10 +122,8 @@ def plotMaps(tree, outdir, prefix="", invertTime = True, diffToOldCalib = False)
 		offset[iz],__ = addFitToPlot(h)
 		c.SaveAs(outdir + '/' + detectors[iz] + "_1d_noffset.png")
 
-	if diffToOldCalib:
-		suffix = "_rel_2012"
-		from EcalTiming.EcalTiming.loadOldCalib import getCalib
-		oldCalib = getCalib()
+	from EcalTiming.EcalTiming.loadOldCalib import getCalib
+	oldCalib = getCalib()
 
 	for event in tree:
 		if not counter % (tree.GetEntries()/10): print counter, '/', tree.GetEntries()
@@ -142,6 +142,8 @@ def plotMaps(tree, outdir, prefix="", invertTime = True, diffToOldCalib = False)
 			continue
 		# initialize histograms (if they haven't been made yet
 		initHists(prefix,time, initMap, key, "time", "Time [ns]")
+		initHists(prefix,time_rel2012, initMap, key, "time_rel2012", "Time [ns]")
+		initHists(prefix,timeError, initMap, key, "timeError", "Time Error[ns]")
 		initHists(prefix,time1d, inittime1d, key, "time1d", "time1d")
 
 		initHists(prefix,occupancy, initMap, key, "occupancy", "Occupancy")
@@ -160,16 +162,8 @@ def plotMaps(tree, outdir, prefix="", invertTime = True, diffToOldCalib = False)
 		
 		t = event.time - offset[iz]
 
-		if diffToOldCalib:
-			if event.rawid in oldCalib:
-				t += oldCalib[event.rawid]
-			else:
-				print "Rawid not found", event.rawid 
-
-		if invertTime:
-			t = -t
-
 		time[key].Fill(x, y, t)
+		timeError[key].Fill(x, y, event.timeError)
 		time1d[key].Fill(t)
 
 		occupancy[key].Fill(x, y, event.num)
@@ -177,11 +171,29 @@ def plotMaps(tree, outdir, prefix="", invertTime = True, diffToOldCalib = False)
 		EvsT[key].Fill(event.energy, t)
 		iRing[key].Fill(event.iRing, t)
 
+		if event.rawid in oldCalib:
+			time_rel2012[key].Fill(x,y, t - oldCalib[event.rawid])
+		else:
+			print "Rawid not found", event.rawid 
+
+
 	for key in time:
 		time[key].SetAxisRange(-10, 10, "Z")
 		time[key].SetZTitle("[ns]")
 		time[key].Draw("colz")
 		c.SaveAs(outdir + "/" + time[key].GetName() + ".png")
+
+	for key in time_rel2012:
+		time_rel2012[key].SetAxisRange(-10, 10, "Z")
+		time_rel2012[key].SetZTitle("[ns]")
+		time_rel2012[key].Draw("colz")
+		c.SaveAs(outdir + "/" + time_rel2012[key].GetName() + ".png")
+
+	for key in timeError:
+		timeError[key].SetAxisRange(-.5, .5, "Z")
+		timeError[key].SetZTitle("[ns]")
+		timeError[key].Draw("colz")
+		c.SaveAs(outdir + "/" + timeError[key].GetName() + ".png")
 
 	c.SetLogz(True)
 	if occupancy:
@@ -226,24 +238,16 @@ if __name__ == "__main__":
 	ROOT.gROOT.SetBatch(True)
 	filename = sys.argv[1]
 
-	outdir = "plots"
-
-	print sys.argv
 	#if len(sys.argv) > 1:
 	#	outdir = sys.argv[1]
 	#elif filename.startswith("output"):
 		# use same path as input file with output -> plots
+	dir, basename = os.path.split(filename)
+	dir = dir.split('/')
+	print dir[-1:]
+	outdir = '/'.join(dir[:-1]) + "/plots/" + dir[-1]
+	outdir = os.path.normpath(outdir)
 
-	outdir = os.path.normpath(os.path.join("plots" , '/'.join(filename.split('/')[1: -1])))
-	
-	if len(sys.argv) > 2:
-		diffToOldCalib = bool(int(sys.argv[2]))
-	else:
-		diffToOldCalib = False
-
-	if diffToOldCalib:
-		outdir += "_rel_2012"
-	
 	def mkdir_p(path):
 		try:
 			os.makedirs(path)
@@ -256,6 +260,6 @@ if __name__ == "__main__":
 	shutil.copy("plots/index.php", outdir)
 
 	file = ROOT.TFile.Open(filename)
-	tree = file.Get("TriggerResults/EcalSplashTiming_0/timingTree")
-	time = plotMaps(tree, outdir, diffToOldCalib=diffToOldCalib)
+	tree = file.Get("filter/EcalSplashTiming/timingTree")
+	time = plotMaps(tree, outdir, )
 
