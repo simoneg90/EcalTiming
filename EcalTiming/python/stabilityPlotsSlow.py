@@ -151,10 +151,16 @@ for event in tree:
 	#	print "Rawid not found", event.rawid 
 
 for key in time:
-	time[key].SetAxisRange(-10,10,"Z")
 	time[key].SetZTitle("[ns]")
+	time[key].SetAxisRange(-10,10,"Z")
 	time[key].Draw("colz")
-	c.SaveAs(outdir_backup + "/" + time[key].GetName() + ".png")
+	c.SaveAs(outdir_backup + "/" + time[key].GetName() + ".10.png")
+	time[key].SetAxisRange(-5,5,"Z")
+	time[key].Draw("colz")
+	c.SaveAs(outdir_backup + "/" + time[key].GetName() + ".5.png")
+	time[key].SetAxisRange(-2,2,"Z")
+	time[key].Draw("colz")
+	c.SaveAs(outdir_backup + "/" + time[key].GetName() + ".2.png")
 
 c.SetLogz(True)
 occu_max = max( [ occupancy[key].GetMaximum() for key in occupancy])

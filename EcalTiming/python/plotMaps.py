@@ -100,7 +100,7 @@ def addFitToPlot(h):
 
 
 def plotMaps(tree, outdir, prefix=""):
-	c = ROOT.TCanvas("c","c",1000,720)
+	c = ROOT.TCanvas("c","c",1600,900)
 	# dictionaries to store histograms
 	time = dict()
 	time_rel2012 = dict()
@@ -181,7 +181,13 @@ def plotMaps(tree, outdir, prefix=""):
 		time[key].SetAxisRange(-10, 10, "Z")
 		time[key].SetZTitle("[ns]")
 		time[key].Draw("colz")
-		c.SaveAs(outdir + "/" + time[key].GetName() + ".png")
+		c.SaveAs(outdir + "/" + time[key].GetName() + ".10.png")
+		time[key].SetAxisRange(-5,5,"Z")
+		time[key].Draw("colz")
+		c.SaveAs(outdir + "/" + time[key].GetName() + ".5.png")
+		time[key].SetAxisRange(-2,2,"Z")
+		time[key].Draw("colz")
+		c.SaveAs(outdir + "/" + time[key].GetName() + ".2.png")
 
 	for key in time_rel2012:
 		time_rel2012[key].SetAxisRange(-10, 10, "Z")
