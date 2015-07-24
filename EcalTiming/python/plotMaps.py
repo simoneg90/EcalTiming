@@ -105,6 +105,7 @@ def plotMaps(tree, outdir, prefix=""):
 	time = dict()
 	time_rel2012 = dict()
 	timeError = dict()
+	stdDev = dict()
 	occupancy = dict()
 	energy = dict()
 	iRing = dict()
@@ -147,8 +148,9 @@ def plotMaps(tree, outdir, prefix=""):
 			continue
 		# initialize histograms (if they haven't been made yet
 		initHists(prefix,time, initMap, key, "time", "Time [ns]")
-		initHists(prefix,time_rel2012, initMap, key, "time_rel2012", "Time [ns]")
+		initHists(prefix,time_rel2012, initMap, key, "time_rel2012", "Time - old calib [ns]")
 		initHists(prefix,timeError, initMap, key, "timeError", "Time Error[ns]")
+		initHists(prefix,stdDev, initMap, key, "stdDev", "Std Dev [ns]")
 		initHists(prefix,time1d, inittime1d, key, "time1d", "time1d")
 
 		initHists(prefix,occupancy, initMap, key, "occupancy", "Occupancy")
@@ -175,6 +177,7 @@ def plotMaps(tree, outdir, prefix=""):
 
 		time[key].Fill(x, y, t)
 		timeError[key].Fill(x, y, event.timeError)
+		stdDev[key].Fill(x, y, event.timeError  * math.sqrt(event.num))
 		time1d[key].Fill(t)
 
 		occupancy[key].Fill(x, y, event.num)
@@ -231,10 +234,16 @@ def plotMaps(tree, outdir, prefix=""):
 		c.SaveAs(outdir + "/" + time_rel2012[key].GetName() + ".png")
 
 	for key in timeError:
-		timeError[key].SetAxisRange(-.5, .5, "Z")
+		timeError[key].SetAxisRange(0, .2, "Z")
 		timeError[key].SetZTitle("[ns]")
 		timeError[key].Draw("colz")
 		c.SaveAs(outdir + "/" + timeError[key].GetName() + ".png")
+
+	for key in stdDev:
+		stdDev[key].SetAxisRange(0, 3, "Z")
+		stdDev[key].SetZTitle("[ns]")
+		stdDev[key].Draw("colz")
+		c.SaveAs(outdir + "/" + stdDev[key].GetName() + ".png")
 
 	c.SetLogz(True)
 	if occupancy:

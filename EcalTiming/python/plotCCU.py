@@ -201,7 +201,7 @@ def plotCCUs(tree, outdir, prefix=""):
 			done.add(id)
 			CCU1d[iz].Fill(t)
 			if abs(time_in_ccu_unit) > ccu_cut[iz] and err < 1.0:
-				print iz, ix, iy, id, round(t/ccu_unit)
+				print iz, ix, iy, id >> 7, id & 2**8-1, round(t/ccu_unit)
 
 
 
