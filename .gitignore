@@ -1,3 +1,6 @@
+*.[oa]
+*~
+*.dat
 *.png
 *.root
 __init__.py
