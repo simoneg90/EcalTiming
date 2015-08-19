@@ -1,6 +1,6 @@
 import ROOT
-import CalibCalorimetry.EcalTiming.TokenRing as TokenRing
-from CalibCalorimetry.EcalTiming.PlotUtils import customROOTstyle, drawMultipleGrid
+import EcalTiming.EcalTiming.TokenRing as TokenRing
+from EcalTiming.EcalTiming.PlotUtils import customROOTstyle, drawMultipleGrid
 
 def makeMap(tree, attribute):
 	EB = ROOT.TProfile2D(attribute + "EB",attribute + " EB",360,1,361,85*2,-84,86) 

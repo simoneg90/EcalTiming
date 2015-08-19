@@ -2,11 +2,12 @@ RUNLIST="243479 243484 243506"
 RUNLIST="248030"
 RUNLIST=`cat runlist`
 RUNLIST="251244 251251 251252 251521 251522 251548 251559 251560 251561 251562"
+RUNLIST="251562"
 
 STREAM=AlCaPhiSym
 NEVENTS=-1
 QUEUE=2nd
-DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/Validation_notCCUSubtracted/
+DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/round1/
 CONFIG=test/ecalTime_fromAlcaStream_cfg.py
 
 FROMRECO=NO
@@ -15,14 +16,6 @@ do
 case $i in
     -s=*|--stream=*)
     STREAM="${i#*=}"
-    shift # past argument=value
-    ;;
-    -c=*|--cfg=*)
-    CONFIG="${i#*=}"
-    shift # past argument=value
-    ;;
-    -d=*|--dir=*)
-    DIR="${i#*=}"
     shift # past argument=value
     ;;
     -r=*|--runlist=*)
@@ -66,7 +59,6 @@ do
 
 	if [ "$FROMRECO" == "NO" ]
 	then
-		STEP=RECOTIMEANALYSIS
 		filelist=`das_client.py --query="file dataset=/MinimumBias/Commissioning2015-v1/RAW run=${RUN}" --limit=50 | sed '2 d'`
 		nfiles=`das_client.py --query="file dataset=/${STREAM}/Run2015B-v1/RAW run=${RUN} | count(file.name)" | sed '2 d'`
 		nfiles=${nfiles:19}
@@ -83,7 +75,6 @@ do
 		# das_client.py --query="file=${file} | sum(file.nevents)"
 		# done
 	else
-		STEP=TIMEANALYSIS
 		filelist=`grep ${RUN}  ~shervin/public/4peter/fileMap-sorted.dat  | cut -d ' ' -f2`
 	fi
 
@@ -95,20 +86,23 @@ do
 	
 	jsonFile=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/json_ecalonly/251022-251562-Prompt-pfgEcal-noLaserProblem.json
 
-	i=0
-	for file in $filelist
+	for en in $(seq 2.5 .5 3.0)
 	do
-		name=${i}_${en}GeV
-		runcommand="cmsRun ${CONFIG} files=${filelist} output=${OUTDIR}/ecalTiming_${name}.root maxEvents=${NEVENTS} jsonFile=${jsonFile} minEnergyEB=1.5 minEnergyEE=2.5 step=${STEP}"
-		if [ "$BATCH" == "YES" ]
-		then
-			bsub -oo ${OUTDIR}/stdout-${name}-${NEVENTS}.log -eo ${OUTDIR}/stderr-${name}-${NEVENTS}.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; 
-			${runcommand}
-			" || exit 1
-		else
-			$runcommand
-		fi
-		let i=i+1
+		i=0
+		for file in $filelist
+		do
+			name=${i}_${en}GeV
+			runcommand="cmsRun ${CONFIG} files=${filelist} output=${OUTDIR}/ecalTiming_${name}.root maxEvents=${NEVENTS} jsonFile=${jsonFile} minEnergyEB=${en} minEnergyEE=${en}"
+			if [ "$BATCH" == "YES" ]
+			then
+				bsub -oo ${OUTDIR}/stdout_${name}_${NEVENTS}.log -eo ${OUTDIR}/stderr_${name}_${NEVENTS}.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; 
+				${runcommand}
+				" || exit 1
+			else
+				$runcommand
+			fi
+			let i=i+1
+		done
 	done
 
 done

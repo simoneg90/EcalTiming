@@ -1,6 +1,6 @@
 import ROOT
-from CalibCalorimetry.EcalTiming.PlotUtils import customROOTstyle, drawMultipleGrid
-import CalibCalorimetry.EcalTiming.TokenRing as TokenRing
+from EcalTiming.EcalTiming.PlotUtils import customROOTstyle, drawMultipleGrid
+import EcalTiming.EcalTiming.TokenRing as TokenRing
 import math
 
 def drawMultipleGrid(hists,outname,limits=[],setLogY=False,setLogZ=False,ncols = 3):

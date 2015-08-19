@@ -10,14 +10,14 @@ def customROOTstyle() :
     ROOT.gStyle.SetPadTopMargin(0.06);
     ROOT.gStyle.SetPadBottomMargin(0.13);
     ROOT.gStyle.SetPadLeftMargin(0.12);
-    ROOT.gStyle.SetPadRightMargin(0.12);
+    ROOT.gStyle.SetPadRightMargin(.15)
     ROOT.gStyle.SetLabelColor(1, "XYZ");
     ROOT.gStyle.SetLabelFont(42, "XYZ");
     ROOT.gStyle.SetLabelOffset(0.007, "XYZ");
     ROOT.gStyle.SetLabelSize(0.05, "XYZ");
     ROOT.gStyle.SetTitleSize(0.05, "XYZ");
     ROOT.gStyle.SetTitleOffset(1.0, "X");
-    ROOT.gStyle.SetTitleOffset(1.4, "Y");
+    ROOT.gStyle.SetTitleOffset(1.1, "Y");
     ROOT.gStyle.SetTitleOffset(1.0, "Z");
     ROOT.gStyle.SetAxisColor(1, "XYZ");
     ROOT.gStyle.SetStripDecimals(True);
@@ -38,6 +38,16 @@ def customROOTstyle() :
     ROOT.gStyle.SetFrameLineWidth(1);
     ROOT.gStyle.SetPalette(55);
     ROOT.gStyle.SetNumberContours(100);
+
+import numpy as np
+def customPalette(zeropoint = 0.5):
+	Number = 3;
+	Red    = np.array([0  ,  100,  110],dtype=float)/255.
+	Green  = np.array([0  ,  255,  0], dtype=float)/255.
+	Blue   = np.array([99 ,  100,  2], dtype=float)/255.
+	Length = np.array([0.0,  zeropoint, 1.0], dtype=float)
+	nb=100;
+	ROOT.TColor.CreateGradientColorTable(Number,Length,Red,Green,Blue,nb)
 
 def drawMultipleGrid(hists,outname,limits=[],setLogY=False,setLogZ=False, ncols = 3, width=1500,height=1100):
 	c = ROOT.TCanvas("c", "c", width,height)
