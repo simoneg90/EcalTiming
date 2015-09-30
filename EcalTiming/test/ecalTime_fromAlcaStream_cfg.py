@@ -20,6 +20,11 @@ options.register('step',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "Do reco, time analysis or both, RECO|TIMEANALYSIS|RECOTIMEANALYSIS")
+options.register('skipEvents',
+                 0,
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.int,
+                 "Skip this many events")
 options.register('offset',
                  0.0,
                  VarParsing.VarParsing.multiplicity.singleton,
@@ -46,6 +51,11 @@ options.register('streamName',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "type of stream: AlCaPhiSym or AlCaP0")
+options.register('globaltag',
+                 '',
+                 VarParsing.VarParsing.multiplicity.singleton,
+                 VarParsing.VarParsing.varType.string,
+                 "Global tag to use, no default")
                  
 ### setup any defaults you want
 options.output="output/ecalTiming.root"
@@ -61,6 +71,13 @@ options.maxEvents = -1 # -1 means all events
 options.parseArguments()
 print options
 
+# if the one file is a folder, grab all the files in it that are RECO
+if len(options.files) == 1 and options.files[0][-1] == '/':
+	from EcalTiming.EcalTiming.storeTools_cff import fillFromStore
+	files = fillFromStore(options.files[0])
+	options.files.pop()
+	options.files = [ f for f in files if "RECO" in f]
+
 processname = options.step
 
 doReco = True
@@ -74,7 +91,7 @@ process = cms.Process(processname)
 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(5000)
 
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
@@ -122,7 +139,8 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
 
 ## GlobalTag Conditions Related
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'GR_P_V56', '') #run2_data', '')
+#process.GlobalTag = GlobalTag(process.GlobalTag, 'GR_P_V56', '') #run2_data', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, options.globaltag, '')
 
 ## Process Digi To Raw Step
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
@@ -135,13 +153,13 @@ process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
 
 ### Print Out Some Messages
-process.MessageLogger = cms.Service("MessageLogger",
-    cout = cms.untracked.PSet(
-        threshold = cms.untracked.string('WARNING')
-    ),
-    categories = cms.untracked.vstring('ecalTimeTree'),
-    destinations = cms.untracked.vstring('cout')
-)
+#process.MessageLogger = cms.Service("MessageLogger",
+#    cout = cms.untracked.PSet(
+#        threshold = cms.untracked.string('WARNING')
+#    ),
+#    categories = cms.untracked.vstring('ecalTimeTree'),
+#    destinations = cms.untracked.vstring('cout')
+#)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
@@ -151,9 +169,11 @@ process.options = cms.untracked.PSet(
 
 # dbs search --query "find file where dataset=/ExpressPhysics/BeamCommissioning09-Express-v2/FEVT and run=124020" | grep store | awk '{printf "\"%s\",\n", $1}'
 # Input source
+print "source files:",options.files
 process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
  	 fileNames = cms.untracked.vstring(options.files),
+ 	 skipEvents = cms.untracked.uint32(options.skipEvents)
 )
 
 if(len(options.jsonFile) > 0):
@@ -162,12 +182,14 @@ if(len(options.jsonFile) > 0):
 
 
 
+recofile = str(options.output)
+recofile = recofile[:recofile.find(".root")] + "_RECO.root"
 # Output definition
 process.RECOoutput = cms.OutputModule("PoolOutputModule",
 splitLevel = cms.untracked.int32(0),
 eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
 outputCommands = cms.untracked.vstring('drop *',"keep *_ecalRecHitE*Selector_*_*"),
-fileName = cms.untracked.string(options.output),
+fileName = cms.untracked.string(recofile),
 dataset = cms.untracked.PSet(
    filterName = cms.untracked.string(''),
    dataTier = cms.untracked.string('RECO')
@@ -175,8 +197,9 @@ dataset = cms.untracked.PSet(
 )
 
 
-## Histogram files
-process.TFileService = cms.Service("TFileService",
+if doAnalysis:
+	## Histogram files
+	process.TFileService = cms.Service("TFileService",
                                    fileName = cms.string(options.output),
                                    closeFileFast = cms.untracked.bool(True)
                                    )
@@ -209,22 +232,24 @@ process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 #process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 
 #ESLooperProducer looper is imported here:
-process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
 process.load('EcalTiming.EcalTiming.RecHitsSelector_cfi')
 
-process.timing.recHitEBCollection = cms.InputTag("ecalRecHitEBSelector")
-process.timing.recHitEECollection = cms.InputTag("ecalRecHitEESelector")
-process.timing.isSplash= cms.bool(True if options.isSplash else False)
-process.timing.makeEventPlots=evtPlots
-process.timing.globalOffset = cms.double(options.offset)
-process.timing.outputDumpFile = process.TFileService.fileName
-process.timing.energyThresholdOffsetEB = cms.double(options.minEnergyEB)
-process.timing.energyThresholdOffsetEE = cms.double(options.minEnergyEE)
-process.timing.storeEvents = cms.bool(True)
+if doAnalysis:
+	process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
+	process.timing.recHitEBCollection = cms.InputTag("ecalRecHitEBSelector")
+	process.timing.recHitEECollection = cms.InputTag("ecalRecHitEESelector")
+	process.timing.isSplash= cms.bool(True if options.isSplash else False)
+	process.timing.makeEventPlots=evtPlots
+	process.timing.globalOffset = cms.double(options.offset)
+	process.timing.outputDumpFile = process.TFileService.fileName
+	process.timing.energyThresholdOffsetEB = cms.double(options.minEnergyEB)
+	process.timing.energyThresholdOffsetEE = cms.double(options.minEnergyEE)
+	process.timing.storeEvents = cms.bool(True)
+	process.analysis = cms.Sequence( process.timing )
 
 
-process.analysis = cms.Sequence( process.timing )
-process.reco = cms.Sequence( (process.filter 
+if doReco:
+	process.reco = cms.Sequence( (process.filter 
                       + process.digiStep 
                       + process.reco_step)
                       * (process.ecalRecHitEBSelector + process.ecalRecHitEESelector)
