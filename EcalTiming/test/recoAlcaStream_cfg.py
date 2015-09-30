@@ -15,31 +15,11 @@ options.register('jsonFile',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "path and name of the json file")
-options.register('step',
-                 "RECOTIMEANALYSIS",
-                 VarParsing.VarParsing.multiplicity.singleton,
-                 VarParsing.VarParsing.varType.string,
-                 "Do reco, time analysis or both, RECO|TIMEANALYSIS|RECOTIMEANALYSIS")
-options.register('skipEvents',
-                 0,
-                 VarParsing.VarParsing.multiplicity.singleton,
-                 VarParsing.VarParsing.varType.int,
-                 "Skip this many events")
 options.register('offset',
                  0.0,
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.float,
                  "add this to each crystal time")
-options.register('minEnergyEB',
-                 0.0,
-                 VarParsing.VarParsing.multiplicity.singleton,
-                 VarParsing.VarParsing.varType.float,
-                 "add this to minimum energy threshold")
-options.register('minEnergyEE',
-                 0.0,
-                 VarParsing.VarParsing.multiplicity.singleton,
-                 VarParsing.VarParsing.varType.float,
-                 "add this to minimum energy threshold")
 options.register('isSplash',
                  0,
                  VarParsing.VarParsing.multiplicity.singleton,
@@ -51,11 +31,6 @@ options.register('streamName',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "type of stream: AlCaPhiSym or AlCaP0")
-options.register('globaltag',
-                 '',
-                 VarParsing.VarParsing.multiplicity.singleton,
-                 VarParsing.VarParsing.varType.string,
-                 "Global tag to use, no default")
                  
 ### setup any defaults you want
 options.output="output/ecalTiming.root"
@@ -71,28 +46,13 @@ options.maxEvents = -1 # -1 means all events
 options.parseArguments()
 print options
 
-# if the one file is a folder, grab all the files in it that are RECO
-if len(options.files) == 1 and options.files[0][-1] == '/':
-	from EcalTiming.EcalTiming.storeTools_cff import fillFromStore
-	files = fillFromStore(options.files[0])
-	options.files.pop()
-	options.files = [ f for f in files if "RECO" in f]
+process = cms.Process("RECO")
 
-processname = options.step
+#dataset=/MinimumBias/Commissioning2015-v1/RAW run=243506
 
-doReco = True
-doAnalysis = True
-if "RECO" not in processname:
-	doReco = False
-if "TIME" not in processname:
-	doAnalysis = False
-
-process = cms.Process(processname)
 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(5000)
-
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
@@ -137,10 +97,12 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
 )
 
 
+## Do you want to Pre-Scale
+process.load("FWCore.Modules.preScaler_cfi")
+process.preScaler.prescaleFactor = 1
 ## GlobalTag Conditions Related
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-#process.GlobalTag = GlobalTag(process.GlobalTag, 'GR_P_V56', '') #run2_data', '')
-process.GlobalTag = GlobalTag(process.GlobalTag, options.globaltag, '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'GR_P_V56', '') #run2_data', '')
 
 ## Process Digi To Raw Step
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
@@ -152,14 +114,20 @@ process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
 
 
+# Dump Some event Content
+import FWCore.Modules.printContent_cfi
+process.dumpEv = FWCore.Modules.printContent_cfi.printContent.clone()
+
 ### Print Out Some Messages
-#process.MessageLogger = cms.Service("MessageLogger",
-#    cout = cms.untracked.PSet(
-#        threshold = cms.untracked.string('WARNING')
-#    ),
-#    categories = cms.untracked.vstring('ecalTimeTree'),
-#    destinations = cms.untracked.vstring('cout')
-#)
+process.MessageLogger = cms.Service("MessageLogger",
+    cout = cms.untracked.PSet(
+        threshold = cms.untracked.string('WARNING')
+    ),
+    categories = cms.untracked.vstring('ecalTimeTree'),
+    destinations = cms.untracked.vstring('cout')
+)
+process.load("FWCore.MessageService.MessageLogger_cfi")
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
@@ -169,40 +137,56 @@ process.options = cms.untracked.PSet(
 
 # dbs search --query "find file where dataset=/ExpressPhysics/BeamCommissioning09-Express-v2/FEVT and run=124020" | grep store | awk '{printf "\"%s\",\n", $1}'
 # Input source
-print "source files:",options.files
 process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
+    #  fileNames = cms.untracked.vstring('file:test_DIGI.root')
  	 fileNames = cms.untracked.vstring(options.files),
- 	 skipEvents = cms.untracked.uint32(options.skipEvents)
 )
 
 if(len(options.jsonFile) > 0):
 	import FWCore.PythonUtilities.LumiList as LumiList
 	process.source.lumisToProcess = LumiList.LumiList(filename = options.jsonFile).getVLuminosityBlockRange()
 
+# process.source = cms.Source(
+#     "PoolSource",
+#     skipEvents = cms.untracked.uint32(0),
+#     fileNames = cms.untracked.vstring(
+#     #'file:MyCrab/50988619-41DE-E211-9F98-003048FFD770.root'
+#     #'root://xrootd.unl.edu//store/data/Run2010B/Cosmics/RAW/v1/000/144/556/C8B5FCA9-F3B5-DF11-B28A-0030487CD16E.root'
+#     #'file:Cosmic-Commissioning2014-Cosmics-RAW-v1-AC4963B3-54BE-E311-97F5-02163E00E6E3.root'
+#     #'/store/data/Commissioning2015/Cosmics/RAW-RECO/CosmicSP-6Mar2015-v1/10000/248747E6-25CA-E411-B17C-02163E00BD75.root'
+#     #'/store/data/Run2010B/Cosmics/RAW/v1/000/144/559/306A4ABD-F3B5-DF11-9CAD-003048F118C6.root'
+#     '/store/data/Commissioning2015/Cosmics/RAW/v1/000/232/881/00000/26ADAFFB-3FAB-E411-A313-02163E011DDC.root'
+#      ),               
+#     # drop native rechits and clusters, to be sure only those locally made will be picked up
+#     inputCommands = cms.untracked.vstring('keep *'
+#                                           ,'drop EcalRecHitsSorted_*_*_RECO' # drop hfRecoEcalCandidate as remade in this process
+#                                           , 'drop recoSuperClusters_*_*_RECO' # drop hfRecoEcalCandidate as remade in this process
+#                                           , 'drop recoCaloClusters_*_*_RECO'
+#                                           )
 
 
-recofile = str(options.output)
-recofile = recofile[:recofile.find(".root")] + "_RECO.root"
 # Output definition
 process.RECOoutput = cms.OutputModule("PoolOutputModule",
-splitLevel = cms.untracked.int32(0),
-eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
-outputCommands = cms.untracked.vstring('drop *',"keep *_ecalRecHitE*Selector_*_*"),
-fileName = cms.untracked.string(recofile),
-dataset = cms.untracked.PSet(
-   filterName = cms.untracked.string(''),
-   dataTier = cms.untracked.string('RECO')
-)
+    splitLevel = cms.untracked.int32(0),
+    eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
+    outputCommands = cms.untracked.vstring('drop *',"keep *_ecalRecHit_EcalRecHits*_*"),
+    fileName = cms.untracked.string(options.output),
+    dataset = cms.untracked.PSet(
+        filterName = cms.untracked.string(''),
+        dataTier = cms.untracked.string('RECO')
+    )
 )
 
 
-if doAnalysis:
-	## Histogram files
-	process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string(options.output),
-                                   closeFileFast = cms.untracked.bool(True)
-                                   )
+## Histogram files
+#process.TFileService = cms.Service("TFileService",
+#                                   fileName = cms.string(options.output),
+#                                   closeFileFast = cms.untracked.bool(True)
+#                                   )
+
+## Dumpevent Event Contents
+process.dumpEvContent = cms.EDAnalyzer("EventContentAnalyzer")
 
 ### NumBer of events
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
@@ -220,7 +204,15 @@ else:
 if(options.isSplash==0):
     process.digiStep = cms.Sequence()
 
+process.p = cms.Path( process.filter #+ process.preScaler 
+                      + process.digiStep 
+                      + process.reco_step
+                      )
 
+process.endp = cms.EndPath(process.RECOoutput)
+
+### Schedule ###
+process.schedule = cms.Schedule(process.p, process.endp) 
 
 evtPlots = True if options.isSplash else False
 
@@ -232,39 +224,12 @@ process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 #process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 
 #ESLooperProducer looper is imported here:
-process.load('EcalTiming.EcalTiming.RecHitsSelector_cfi')
-
-if doAnalysis:
-	process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
-	process.timing.recHitEBCollection = cms.InputTag("ecalRecHitEBSelector")
-	process.timing.recHitEECollection = cms.InputTag("ecalRecHitEESelector")
-	process.timing.isSplash= cms.bool(True if options.isSplash else False)
-	process.timing.makeEventPlots=evtPlots
-	process.timing.globalOffset = cms.double(options.offset)
-	process.timing.outputDumpFile = process.TFileService.fileName
-	process.timing.energyThresholdOffsetEB = cms.double(options.minEnergyEB)
-	process.timing.energyThresholdOffsetEE = cms.double(options.minEnergyEE)
-	process.timing.storeEvents = cms.bool(True)
-	process.analysis = cms.Sequence( process.timing )
-
-
-if doReco:
-	process.reco = cms.Sequence( (process.filter 
-                      + process.digiStep 
-                      + process.reco_step)
-                      * (process.ecalRecHitEBSelector + process.ecalRecHitEESelector)
-                      )
-
-
-process.seq = cms.Sequence()
-if doReco:
-	process.seq += process.reco
-if doAnalysis:
-	process.seq += process.analysis
-else:
-	process.endp = cms.EndPath(process.RECOoutput)
-
-process.p = cms.Path(process.seq)
+#process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
+#process.looper.isSplash= cms.bool(True if options.isSplash else False)
+#process.looper.makeEventPlots=evtPlots
+#process.looper.globalOffset = cms.double(options.offset)
+#process.looper.outputDumpFile = process.TFileService.fileName
+#process.looper.minRecHitEnergy = cms.double(0.5)
 
 processDumpFile = open('processDump.py', 'w')
 print >> processDumpFile, process.dumpPython()

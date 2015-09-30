@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-looper = cms.Looper("EcalTimingCalibProducer",
+timing = cms.EDFilter("EcalTimingCalibProducer",
                     maxLoop = cms.uint32(1),
                     isSplash = cms.bool(False),
                     makeEventPlots = cms.bool(False),
@@ -9,12 +9,14 @@ looper = cms.Looper("EcalTimingCalibProducer",
                     recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration
                     #recHitMinimumN = cms.uint32(10),
                     recHitMinimumN = cms.uint32(2),
-                    minRecHitEnergy = cms.double(1),
                     minRecHitEnergyStep = cms.double(0.5),
+                    minRecHitEnergyNStep = cms.double(10),
+                    energyThresholdOffsetEE = cms.double(0.0),
+                    energyThresholdOffsetEB = cms.double(0.0),
                     minEntries = cms.uint32(1),
                     globalOffset = cms.double(0.),
+                    storeEvents = cms.bool(False),
                     produceNewCalib = cms.bool(True),
                     outputDumpFile = cms.string('output.dat'),
                     maxSkewnessForDump = cms.double(2),
-                    minEnergyCheck = cms.vdouble( [ 0.5, 1.0, 2.0, 3.0] ),
                     )
