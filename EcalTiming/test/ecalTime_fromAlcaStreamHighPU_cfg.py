@@ -31,7 +31,7 @@ options.register('minEnergyEB',
                  VarParsing.VarParsing.varType.float,
                  "add this to minimum energy threshold")
 options.register('minEnergyEE',
-                 3.0,
+                 3,
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.float,
                  "add this to minimum energy threshold")
@@ -56,25 +56,23 @@ options.register('streamName',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "type of stream: AlCaPhiSym or AlCaP0")
-                 
-#options.jsonFile ="/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
-#options.jsonFile ="/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_254986-255031_13TeV_PromptReco_Collisions15_LOWPU_25ns_JSON_MuonPhys.txt"
-#options.jsonFile
 
-
+#options.jsonFile="/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
+#options.jsonFile="/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/DCSOnly/json_DCSONLY.txt"                 
+#options.jsonFile;
 ### setup any defaults you want
 options.output="output/ecalTiming.root"
 options.secondaryOutput="ntuple.root"
 
-if(options.streamName=="AlCaP0"): print "stream ",options.streamName #options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
-elif(options.streamName=="AlCaPhiSym"): print "stream ",options.streamName #options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
+if(options.streamName=="AlCaP0"): print "stream ",options.streamName#options.files = "/store/data/Commissioning2015/AlCaP0/RAW/v1/000/246/342/00000/048ECF48-F906-E511-95AC-02163E011909.root"
+elif(options.streamName=="AlCaPhiSym"): print "stream ",options.streamName#options.files = "/store/data/Commissioning2015/AlCaPhiSym/RAW/v1/000/244/768/00000/A8219906-44FD-E411-8DA9-02163E0121C5.root"
 else: 
     print "stream ",options.streamName," not foreseen"
     exit
 
 #options.files = cms.untracked.vstring
 #options.streamName = cms.untracked.vstring
-options.maxEvents = -1 # -1 means all events
+options.maxEvents = -1# -1 means all events
 ### get and parse the command line arguments
 options.parseArguments()
 print options
@@ -212,9 +210,21 @@ process.dummyHits = cms.EDProducer("DummyRechitDigis",
                                     endcapRecHitCollection = cms.untracked.string("dummyEndcapRechitsPi0"),
                                     # digis
                                     barrelDigis            = cms.InputTag('hltAlCaPi0EBRechitsToDigis','pi0EBDigis',"HLT"),
-                                    endcapDigis            = cms.InputTag('hltAlCaPi0EERechitsToDigisLowPU','pi0EEDigis',"HLT"), #changed hltAlCaPi0EERechitsToDigis in LowPU....changed in the file -.-
+                                    endcapDigis            = cms.InputTag('hltAlCaPi0EERechitsToDigis','pi0EEDigis',"HLT"), #changed hltAlCaPi0EERechitsToDigis in LowPU....changed in the file -.-
                                     barrelDigiCollection   = cms.untracked.string("dummyBarrelDigisPi0"),
                                     endcapDigiCollection   = cms.untracked.string("dummyEndcapDigisPi0"))
+
+##ADDED
+# TRIGGER RESULTS FILTER                                                                                                                                                                                                                                                                   
+process.triggerSelectionLoneBunch = cms.EDFilter( "TriggerResultsFilter",
+                                                   triggerConditions = cms.vstring('L1_AlwaysTrue'),
+                                                   hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+                                                   l1tResults = cms.InputTag( "hltGtDigis" ),
+                                                   l1tIgnoreMask = cms.bool( False ),
+                                                   l1techIgnorePrescales = cms.bool( False ),
+                                                   daqPartitions = cms.uint32( 1 ),
+                                                   throw = cms.bool( True )
+                                                   )
 
 process.filter=cms.Sequence()
 if(options.isSplash==1):
@@ -231,6 +241,7 @@ else:
       #process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag('dummyHits','dummyEndcapDigis')#,'piZeroAnalysis')
       #ecalRecHit.killDeadChannels = False
       #ecalRecHit.recoverEBFE = False
+      process.filter+=process.triggerSelectionLoneBunch
       import RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi
       process.ecalMultiFitUncalibRecHit =  RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi.ecalMultiFitUncalibRecHit.clone()
       process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag('dummyHits','dummyBarrelDigisPi0')#,'piZeroAnalysis')
@@ -252,6 +263,7 @@ else:
                                       * process.ecalRecHit)
     else:
       #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+      process.filter+=process.triggerSelectionLoneBunch
       process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
       
 
