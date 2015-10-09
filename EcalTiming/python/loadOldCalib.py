@@ -235,6 +235,32 @@ def plot2d(map, dir, name, low, hi,setLogz=False):
 		h.Draw("colz")
 		c.SaveAs(dir + '/' + h.GetName() + ".png")
 
+def calcMeanByiRing(m,iRings):
+	global rawidMap
+	time_sum  = dict(zip(iRings,[0]*len(iRings)))
+	time_sum2 = dict(zip(iRings,[0]*len(iRings)))
+	time_num  = dict(zip(iRings,[0]*len(iRings)))
+	
+	for id,time in m.iteritems():
+		try:
+			crys = rawidMap[id]
+		except KeyError:
+			print id, "not found"
+			continue
+		key = (crys.iz, crys.iRing)
+		if key in iRings:
+			time_sum[key] += time
+			time_sum2[key] += time*time
+			time_num[key] += 1
+	
+	mean = dict()
+	stddev = dict()
+	for k in time_sum:
+		if time_num[k]:
+			mean[k] = time_sum[k]/time_num[k]
+			stddev[k] = math.sqrt(time_sum2[k]/time_num[k] - mean[k]**2)
+	return mean,stddev
+
 def calcMean(m):
 	global rawidMap
 	time_sum = dict(zip(det_name.keys(),[0]*len(det_name)))
@@ -263,8 +289,9 @@ def calcMean(m):
 	mean = dict()
 	stddev = dict()
 	for k in time_sum:
-		mean[k] = time_sum[k]/time_num[k]
-		stddev[k] = math.sqrt(time_sum2[k]/time_num[k] - mean[k]**2)
+		if time_num[k]:
+			mean[k] = time_sum[k]/time_num[k]
+			stddev[k] = math.sqrt(time_sum2[k]/time_num[k] - mean[k]**2)
 	return mean,stddev
 
 

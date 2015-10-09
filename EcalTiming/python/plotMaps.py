@@ -342,7 +342,7 @@ if __name__ == "__main__":
 			else: raise
 
 	mkdir_p(outdir)
-	shutil.copy("plots/index.php", outdir)
+	#shutil.copy("plots/index.php", outdir)
 
 	file = ROOT.TFile.Open(filename)
 	tree = file.Get("timing/EcalSplashTiming/timingTree")

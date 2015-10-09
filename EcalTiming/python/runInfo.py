@@ -27,7 +27,7 @@ runPeriods.append(RunPeriod("Run2015C-v1", True,  253659, 256464,  Run2015CD_jso
 runPeriods.append(RunPeriod("Run2015D-v1", False, 256630, 999999,  Run2015CD_ZeroTesla_json,   25, "74X_dataRun2_Prompt_v2"))
 runPeriods.append(RunPeriod("Run2015D-v1", True,  256630, 999999,  Run2015CD_json,             25, "74X_dataRun2_Prompt_v2"))
                                                                 
-runPeriods.append(RunPeriod("Run2015C", True,  254833, 254833,  Run254833_json,             50, "74X_dataRun2_Prompt_v1"))
+runPeriods.append(RunPeriod("Run2015C-v1", True,  254833, 254833,  Run254833_json,             50, "74X_dataRun2_Prompt_v1"))
 
 def LumiListForRunPeriod(rp):
 	ll = LumiList(filename = rp.json)

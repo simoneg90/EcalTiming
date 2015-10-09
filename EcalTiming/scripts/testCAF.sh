@@ -100,6 +100,8 @@ do
 	echo "=== RUN = ${RUN}"
 	OUTDIR=$EOSDIR/${STREAM}-${RUN}/
 	/afs/cern.ch/project/eos/installation/0.3.84-aquamarine/bin/eos.select mkdir ${OUTDIR}
+	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/${STREAM}-${RUN}/
+	mkdir -p ${AFSDIR}
 
 	if [[ $STEP == *"RECO"* ]]
 	then
@@ -157,6 +159,10 @@ do
 		#runcommand+="ls -l;"
 		#runcommand+="df -h;"
 		runcommand+="xrdcp ${tmp_file_real} ${EOSPREFIX}${OUTDIR}/;"
+		if [[ $STEP == *"TIME"* ]]
+		then
+			runcommand+="cp ecalTiming_* ${AFSDIR}/;"
+		fi
 		if [ "$BATCH" == "YES" ]
 		then
 			bsub -oo log/stdout-${STREAM}-${RUN}-${name}-${NEVENTS}.log -eo log/stderr-${STREAM}-${RUN}-${name}-${NEVENTS}.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; cd -
