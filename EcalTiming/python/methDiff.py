@@ -223,7 +223,6 @@ def listDiff(hist_name, maps1, maps2, names1, names2, errs=[]):
 	mg[-1] = ("EEM_" + hist_name,ROOT.TMultiGraph())
 	mg[1]  = ("EEP_" + hist_name,ROOT.TMultiGraph())
 
-	
 	x1 = ROOT.gStyle.GetPadLeftMargin();
 	x2 = 1 - ROOT.gStyle.GetPadRightMargin();
 	y1 = ROOT.gStyle.GetPadBottomMargin();
@@ -272,9 +271,9 @@ if __name__ == "__main__":
 	
 	print files
 	print outdir
-   #do diff each step
 	plotRingAverPerMap("PerRuniRing", maps, subs)
 	plotAvePerMap("PerRun", maps, subs)
+   #do diff each step
 	#listDiff( sys.argv[2], maps[:-1], maps[1:], subs[:-1], subs[1:], errs=maps_err[:-1])
    #do diff with respect to first
 	#listDiff(sys.argv[2] + "_base", maps[:1]*(len(maps)-1), maps[1:], subs[:1]*(len(maps) -1), subs[1:], errs=maps_err[:-1])

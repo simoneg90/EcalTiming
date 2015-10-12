@@ -44,6 +44,8 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_minRecHitEnergyNStep(iConfig.getParameter<double>("minRecHitEnergyNStep")),
    _energyThresholdOffsetEB(iConfig.getParameter<double>("energyThresholdOffsetEB")),
    _energyThresholdOffsetEE(iConfig.getParameter<double>("energyThresholdOffsetEE")),
+   _chi2ThresholdOffsetEB(iConfig.getParameter<double>("chi2ThresholdOffsetEB")),//added
+   _chi2ThresholdOffsetEE(iConfig.getParameter<double>("chi2ThresholdOffsetEE")),//added
 	_minEntries(iConfig.getParameter<unsigned int>("minEntries")),
 	_globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_storeEvents(iConfig.getParameter<bool>("storeEvents")),
@@ -101,9 +103,8 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit, EventTimeMap& 
 	//check if rechit is valid
 	if(! recHit.checkFlags(_recHitFlags)) return false;
 
-	float energyThreshold = getEnergyThreshold(recHit.detid()) ;
-	if( recHit.energy() < (energyThreshold)) return false; // minRecHitEnergy in ADC for EB
-	//if(recHit.detid().subdetId() == EcalEndcap && recHit.energy() < 2 * (_minRecHitEnergy+_minRecHitEnergyStep*_iter)) return false;
+	std::pair<float, float> energyThreshold = getEnergyThreshold(recHit.detid()); // first->energy threshold, second->chi2 threshold
+	if( (recHit.energy() < (energyThreshold.first)) || (recHit.chi2()>energyThreshold.second)) return false; // minRecHitEnergy in ADC for EB - the minChi2 value has to be implemented separately like the minEnergy
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 	EcalTimingEvent timeEvent(recHit);
@@ -124,6 +125,7 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), recHit.energy()); // 2D energy map
 		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), recHit.time()); // 2D time map
 		RechitEnergyTimeEB->Fill(recHit.energy(), recHit.time());
+		OccupancyEB_->Fill(id.ieta(), id.iphi(), 1);
 	} else {
 		// create EEDetId
 		EEDetId id(recHit.detid());
@@ -131,11 +133,13 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
 			Event_EneMapEEM_->Fill(id.ix(), id.iy(), recHit.energy());
 			Event_TimeMapEEM_->Fill(id.ix(), id.iy(), recHit.time());
 			RechitEnergyTimeEEM->Fill(recHit.energy(), recHit.time());
+			OccupancyEEM_->Fill(id.ix(), id.iy(), 1);
 
 		} else {
 			Event_EneMapEEP_->Fill(id.ix(), id.iy(), recHit.energy());
 			Event_TimeMapEEP_->Fill(id.ix(), id.iy(), recHit.time());
 			RechitEnergyTimeEEP->Fill(recHit.energy(), recHit.time());
+			OccupancyEEP_->Fill(id.ix(), id.iy(), 1);
 		}
 	}
 }
@@ -200,11 +204,6 @@ bool EcalTimingCalibProducer::filter(edm::Event& iEvent, const edm::EventSetup& 
 	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
 		// add the recHit to the list of recHits used for calibration (with the relative information)
 		if(addRecHit(*recHit_itr, _eventTimeMap)) {
-			//EBDetId id(recHit.detid());
-			// if(id.ieta() == -75 && id.iphi() == 119) {
-			// 	std::cout << "RawID\t" << id.rawId() << std::endl;
-			// 	return false;
-			// }
 			timeEB.add(EcalTimingEvent(*recHit_itr), false);
 		}
 	}
@@ -297,7 +296,6 @@ void EcalTimingCalibProducer::endJob()
 		_timeCalibConstants.setValue(calibRecHit_itr->first.rawId(), correction);
 
 		unsigned int ds = DS_NONE;
-		//TODO: This probably shouldn't be commented out. Move the stat check into the individual functions?
 		if(calibRecHit_itr->second.num() > 50) {
 			// check the asymmetry of the distribution: if asymmetric, dump the full set of events for further offline studies
 			if(fabs(calibRecHit_itr->second.getSkewnessWithinNSigma(n_sigma, 10)) > _maxSkewnessForDump)  {
@@ -307,8 +305,8 @@ void EcalTimingCalibProducer::endJob()
 
 			// check if result is stable as function of energy
 			std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability;
-			float energyThreshold = getEnergyThreshold(calibRecHit_itr->first);
-			if(! calibRecHit_itr->second.isStableInEnergy(energyThreshold, energyThreshold + _minRecHitEnergyStep * _minRecHitEnergyNStep, _minRecHitEnergyStep, energyStability)) {
+			std::pair <float, float> energyThreshold = getEnergyThreshold(calibRecHit_itr->first);
+			if(! calibRecHit_itr->second.isStableInEnergy(energyThreshold.first, energyThreshold.first + _minRecHitEnergyStep * _minRecHitEnergyNStep, _minRecHitEnergyStep, energyStability)) {
 				ds |= DS_UNSTABLE_EN;
 			}
 			FillEnergyStabilityHists(calibRecHit_itr, energyStability);
@@ -360,7 +358,6 @@ void EcalTimingCalibProducer::endJob()
 	dumpCalibration(filename);
 	sprintf(filename, "%s-corr.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str()); //text file holding constants
 	dumpCorrections(filename);
-	// save the xml
 }
 
 void EcalTimingCalibProducer::dumpCorrections(std::string filename)
@@ -571,6 +568,10 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 	HWTimeMapEEM_ = fdir.make<TProfile2D>("HWTimeMapEEM", "Mean HW Time[ns] profile map EE-;ix;iy; Time[ns]", 100, 1, 101, 100, 1, 101);
 	HWTimeMapEB_  = fdir.make<TProfile2D>("HWTimeMapEB",  "Mean HW Time[ns] EB profile map; i#eta; i#phi;Time[ns]", 171, -85, 86, 360, 1., 361.);
 
+
+	OccupancyEB_  = fdir.make<TH2D>("OccupancyEB", "Occupancy EB; i#eta; i#phi; #Hits", 171, -85, 86, 360, 1., 361.);
+	OccupancyEEM_ = fdir.make<TH2D>("OccupancyEEM", "OccupancyEEM; iy; ix; #Hits", 100, 1, 101, 100, 1, 101);
+	OccupancyEEP_ = fdir.make<TH2D>("OccupancyEEP", "OccupancyEEP; iy; ix; #Hits", 100, 1, 101, 100, 1, 101);
 }
 
 //
