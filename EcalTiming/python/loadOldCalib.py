@@ -294,6 +294,49 @@ def calcMean(m):
 			stddev[k] = math.sqrt(time_sum2[k]/time_num[k] - mean[k]**2)
 	return mean,stddev
 
+def calcPull(m1, m2, errors):
+	global rawidMap
+
+	diffMap = addCalib(m1, m2, -1, 1)
+	resMap = divideCalib(diffMap, errors)
+
+	time_sum = dict(zip(det_name.keys(),[0]*len(det_name)))
+	time_sum2 = dict(zip(det_name.keys(),[0]*len(det_name)))
+	time_sum3 = dict(zip(det_name.keys(),[0]*len(det_name)))
+	time_num = dict(zip(det_name.keys(),[0]*len(det_name)))
+	
+	for id,time in resMap.iteritems():
+		try:
+			crys = rawidMap[id]
+		except KeyError:
+			print id, "not found"
+			continue
+		if crys.iz == 0:
+			side = math.copysign(1,crys.ix)
+			time_sum[(0,side)] += time
+			time_sum2[(0,side)] += time**2
+			time_sum3[(0,side)] += time**3
+			time_num[(0,side)] += 1
+			time_sum[0] += time
+			time_sum2[0] += time**2
+			time_sum3[0] += time**3
+			time_num[0] += 1
+		else:
+			time_sum[crys.iz] += time
+			time_sum2[crys.iz] += time**2
+			time_sum3[crys.iz] += time**3
+			time_num[crys.iz] += 1
+	
+	mean = dict()
+	stddev = dict()
+	skew = dict()
+	for k in time_sum:
+		if time_num[k]:
+			mean[k] = time_sum[k]/time_num[k]
+			stddev[k] = math.sqrt(time_sum2[k]/time_num[k] - mean[k]**2)
+			skew[k] =  (time_sum3[k] / time_num[k] - 3 * mean[k] * stddev[k]**2 - mean[k]**3) / stddev[k]**3;
+	return mean,stddev,skew
+
 
 if __name__ == "__main__":
 	print "hi"

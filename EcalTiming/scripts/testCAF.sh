@@ -16,9 +16,10 @@ EOSPREFIX=root://eoscms//eos/cms/
 EOSDIR=/store/group/dpg_ecal/alca_ecalcalib/EcalTiming/
 #DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/RunII/
 CONFIG=$PWD/test/ecalTime_fromAlcaStream_cfg.py
-NJOBS=1
+EVENTSPERJOB=500000
 USER=$(whoami)
 
+eos=/afs/cern.ch/project/eos/installation/0.3.84-aquamarine/bin/eos.select
 STEP=RECOTIMEANALYSIS
 for i in "$@"
 do
@@ -72,8 +73,8 @@ case $i in
     GLOBALTAG="${i#*=}"
     shift # past argument=value
     ;;
-    --njobs=*)
-    NJOBS="${i#*=}"
+    --eventsperjob=*)
+    EVENTSPERJOB="${i#*=}"
     shift # past argument=value
     ;;
     *)
@@ -99,7 +100,7 @@ do
 	fi
 	echo "=== RUN = ${RUN}"
 	OUTDIR=$EOSDIR/${STREAM}-${RUN}/
-	/afs/cern.ch/project/eos/installation/0.3.84-aquamarine/bin/eos.select mkdir ${OUTDIR}
+	$eos mkdir ${OUTDIR}
 	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/${STREAM}-${RUN}/
 	mkdir -p ${AFSDIR}
 
@@ -143,39 +144,46 @@ do
 	i=0
 	for file in $filelist
 	do
-	for job in `seq $NJOBS`
-	do
+		if [ "$i" -gt 5 ] 
+		then
+			continue
+		fi
 		name=${i}
-		let n=$NEVENTS/$NJOBS
-		let skip=$n*$i
+		#let skip=$EVENTSPERJOB*$job
+		skip=0
 		tmp_file=ecalTiming_${name}.root
-		if [ "$n" == "-1" ]
+		if [ "$NEVENTS" == "-1" ]
 		then
 			tmp_file_real=ecalTiming_${name}${RECO}.root
 		else
-			tmp_file_real=ecalTiming_${name}_numEvent${n}${RECO}.root
+			tmp_file_real=ecalTiming_${name}_numEvent${NEVENTS}${RECO}.root
 		fi
-		runcommand="cmsRun ${CONFIG} files=${filelist} output=${tmp_file} maxEvents=${n} jsonFile=${JSON} minEnergyEB=1.5 minEnergyEE=2.5 step=${STEP} skipEvents=${skip} globaltag=${GLOBALTAG};"
+		runcommand="cmsRun ${CONFIG} files=${file} output=${tmp_file} maxEvents=${NEVENTS} jsonFile=${JSON} minEnergyEB=1.5 minEnergyEE=2.5 step=${STEP} skipEvents=${skip} globaltag=${GLOBALTAG};"
 		#runcommand+="ls -l;"
 		#runcommand+="df -h;"
 		runcommand+="xrdcp ${tmp_file_real} ${EOSPREFIX}${OUTDIR}/;"
+		echo "check if file exists"
+		if $eos ls ${OUTDIR}/${tmp_file_real}
+		then
+			echo "File exists"
+			let i=i+1
+			continue
+		fi
 		if [[ $STEP == *"TIME"* ]]
 		then
 			runcommand+="cp ecalTiming_* ${AFSDIR}/;"
 		fi
+		echo "$runcommand"
 		if [ "$BATCH" == "YES" ]
 		then
-			bsub -oo log/stdout-${STREAM}-${RUN}-${name}-${NEVENTS}.log -eo log/stderr-${STREAM}-${RUN}-${name}-${NEVENTS}.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; cd -
+			bsub -oo log/stdout-${STREAM}-${RUN}-${name}-${NEVENTS}${RECO}.log -eo log/stderr-${STREAM}-${RUN}-${name}-${NEVENTS}${RECO}.log -R "rusage[mem=4000]" -q ${QUEUE} "cd $PWD; eval \`scramv1 runtime -sh\`; cd -
 			${runcommand}
 			" || exit 1
 		else
-			echo $runcommand
 			eval $runcommand
 		fi
 		let i=i+1
 	done
-	done
-
 done
 exit 0
 cat > test/run-${RUN}.cfg <<EOF

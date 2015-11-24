@@ -89,7 +89,7 @@ if len(options.files) == 1 and options.files[0][-1] == '/':
 	from EcalTiming.EcalTiming.storeTools_cff import fillFromStore
 	files = fillFromStore(options.files[0])
 	options.files.pop()
-	options.files = [ f for f in files if "RECO" in f]
+	options.files = [ f for f in files if "RECO" in f and "numEvent" not in f]
 
 processname = options.step
 
@@ -104,7 +104,7 @@ process = cms.Process(processname)
 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
-process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(5000)
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(10000)
 
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
@@ -163,18 +163,18 @@ process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
 
 ### Print Out Some Messages
-process.MessageLogger = cms.Service("MessageLogger",
-    cout = cms.untracked.PSet(
-        threshold = cms.untracked.string('WARNING')
-    ),
-    categories = cms.untracked.vstring('ecalTimeTree'),
-    destinations = cms.untracked.vstring('cout')
-)
+#process.MessageLogger = cms.Service("MessageLogger",
+#    cout = cms.untracked.PSet(
+#        threshold = cms.untracked.string('WARNING')
+#    ),
+#    categories = cms.untracked.vstring('ecalTimeTree'),
+#    destinations = cms.untracked.vstring('cout')
+#)
 
 # enable the TrigReport and TimeReport
 process.options = cms.untracked.PSet(
-    wantSummary = cms.untracked.bool(True)
-#    SkipEvent = cms.untracked.vstring('ProductNotFound')
+    wantSummary = cms.untracked.bool(True),
+    SkipEvent = cms.untracked.vstring('ProductNotFound')
 )
 
 SkipEvent = cms.untracked.vstring('ProductNotFound','EcalProblem')
@@ -323,6 +323,7 @@ else:
 	process.endp = cms.EndPath(process.RECOoutput)
 
 process.p = cms.Path(process.seq)
-
-processDumpFile = open('processDump.py', 'w')
+from datetime import datetime
+processDumpFilename = "processDump" + datetime.now().strftime("%M%S%f") + ".py"
+processDumpFile = open(processDumpFilename, 'w')
 print >> processDumpFile, process.dumpPython()

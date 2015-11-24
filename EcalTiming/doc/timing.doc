@@ -8,6 +8,7 @@
  This package can be used to analyze 
   - splash event data in RAW format: \ref Splash_sec
   - data from AlCaPhiSymmetry stream: \ref AlCaPhiSymmetry_test_sec
+  - dump conditions in database: \ref dump_database
 
 
 If you want to see a preview of the documentation:

@@ -32,8 +32,10 @@ def fillFromStore(dir,ffile=0,step=-1,generatePfn=True):
 
     elif(dir.find('/store/')==0):
         prefix='eoscms'
-        lscommand = 'cmsLs ' + dir + ' | grep root | awk \'{print $5}\''
+        lscommand = '/afs/cern.ch/project/eos/installation/0.3.84-aquamarine/bin/eos.select ls ' + dir + ' | grep root'
         lsouttmp = commands.getstatusoutput(lscommand)[1].split()
+        print lscommand
+        print lsouttmp
 
         #this is needed as cmsLs lists twice files staged from castor
         #(only needed during transition to EOS, can remove now)
@@ -48,7 +50,7 @@ def fillFromStore(dir,ffile=0,step=-1,generatePfn=True):
             basename = os.path.basename(l)
             if(basename.find('tree_')==0) : continue
             if(basename.find('histogram')==0): continue
-            lsout.append(l)
+            lsout.append(dir + "/" + l)
         print 'Discarded ' + str(nduplicate)  + ' files duplicated in cmsLs output'
        
     elif(dir.find('.root')<0):
