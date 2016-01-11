@@ -66,6 +66,12 @@ options.register('globaltag',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "Global tag to use, no default")
+options.register('loneBunch',
+                   1,
+                   VarParsing.VarParsing.multiplicity.singleton,
+                   VarParsing.VarParsing.varType.int,
+                   "0=No, 1=Yes"
+                 )
                  
 ### setup any defaults you want
 options.output="output/ecalTiming.root"
@@ -84,13 +90,6 @@ options.maxEvents = -1 # -1 means all events
 options.parseArguments()
 print options
 
-# if the one file is a folder, grab all the files in it that are RECO
-if len(options.files) == 1 and options.files[0][-1] == '/':
-	from EcalTiming.EcalTiming.storeTools_cff import fillFromStore
-	files = fillFromStore(options.files[0])
-	options.files.pop()
-	options.files = [ f for f in files if "RECO" in f and "numEvent" not in f]
-
 processname = options.step
 
 doReco = True
@@ -101,6 +100,14 @@ if "TIME" not in processname:
 	doAnalysis = False
 
 process = cms.Process(processname)
+
+# if the one file is a folder, grab all the files in it that are RECO
+if len(options.files) == 1 and options.files[0][-1] == '/' and doReco:
+	from EcalTiming.EcalTiming.storeTools_cff import fillFromStore
+	files = fillFromStore(options.files[0])
+	options.files.pop()
+	options.files = [ f for f in files if "RECO" in f and "numEvent" not in f]
+
 
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
@@ -155,6 +162,23 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, options.globaltag, '')
 
+
+##  This section is for grabbing the constants from a FrontierPrep for validation
+#from CondCore.DBCommon.CondDBSetup_cfi import *
+#
+## rereco of for EOY
+#process.GlobalTag = cms.ESSource("PoolDBESSource",
+#		CondDBSetup,
+#		connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'),
+#		globaltag = cms.string(options.globaltag),
+#		toGet = cms.VPSet(
+#			cms.PSet(record = cms.string("EcalTimeCalibConstantsRcd"),
+#				tag = cms.string("EcalTimeCalibConstants_v08_offline"),
+#				connect = cms.untracked.string('frontier://FrontierPrep/CMS_CONDITIONS')
+#				)
+#			),
+#		)
+#
 ## Process Digi To Raw Step
 process.digiStep = cms.Sequence(process.ecalDigis  + process.ecalPreshowerDigis)
 
@@ -233,6 +257,18 @@ process.dummyHits = cms.EDProducer("DummyRechitDigis",
                                     barrelDigiCollection   = cms.untracked.string("dummyBarrelDigisPi0"),
                                     endcapDigiCollection   = cms.untracked.string("dummyEndcapDigisPi0"))
 
+##ADDED
+# TRIGGER RESULTS FILTER                                                                                                                                                                                                                                                                   
+process.triggerSelectionLoneBunch = cms.EDFilter( "TriggerResultsFilter",
+                                                   triggerConditions = cms.vstring('L1_AlwaysTrue'),
+                                                   hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+                                                   l1tResults = cms.InputTag( "hltGtDigis" ),
+                                                   l1tIgnoreMask = cms.bool( False ),
+                                                   l1techIgnorePrescales = cms.bool( False ),
+                                                   daqPartitions = cms.uint32( 1 ),
+                                                   throw = cms.bool( True )
+                                                   )
+
 process.filter=cms.Sequence()
 if(options.isSplash==1):
     process.filter+=process.spashesHltFilter
@@ -248,6 +284,8 @@ else:
       #process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag('dummyHits','dummyEndcapDigis')#,'piZeroAnalysis')
       #ecalRecHit.killDeadChannels = False
       #ecalRecHit.recoverEBFE = False
+      if(options.loneBunch==1):
+        process.filter+=process.triggerSelectionLoneBunch
       import RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi
       process.ecalMultiFitUncalibRecHit =  RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi.ecalMultiFitUncalibRecHit.clone()
       process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag('dummyHits','dummyBarrelDigisPi0')#,'piZeroAnalysis')
@@ -269,6 +307,8 @@ else:
                                       * process.ecalRecHit)
     else:
       #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
+      if(options.loneBunch==1):
+        process.filter+=process.triggerSelectionLoneBunch
       process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
       
 
