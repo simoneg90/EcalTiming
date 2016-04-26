@@ -1,0 +1,25 @@
+/**
+\page notes_ Notes
+
+Create a collection of compressed rechits, storing only the detid, energy and time. 
+  - detid is a uint32_t
+  - Time is stored as a int16_t with a range of +/- 32.767 ns
+  - Energy is stored as a uint16_t with a max of 655.35 GeV
+
+so each hit is 8 bytes. 
+Only hits with flags = 0 will be stored in the collection.
+A separate producer will make the collection which we can add in a sequence in the PhiSym analysis. 
+
+We need to store every time and energy to be able to determine the stability of our calculation with different cuts.
+
+The collection will be read in by the EcalCrystalTimingCalibration class which will perform the analysis
+The analysis will apply an energy threshold, calculate mean/stddev of timing, and recalculate the mean/stddev inside a 2 sigma window. 
+This window helps avoid bias to highly out of time events. 
+
+TODO: Find out about ChiSquared for cutting on out of time pileup. 
+
+If we notice that the output root file size is too large, we store a vector of time and energy per lumisection and store the detid only once per lumi.
+Another idea for extremely high occupancy would be to store binned sums, allowing for a courser 2 sigma window to be made. 
+ 
+Go back to \ref index
+*/

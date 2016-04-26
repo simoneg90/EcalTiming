@@ -4,16 +4,20 @@
 #RUNPERIOD=Run2015B-v1
 #2015C
 #RUNLIST="254231 254232 254790 254879" #254852 
-RUNPERIOD=Run2015C-v1
+RUNPERIOD=2016A-v1
 
 #RUNLIST="254292 254293 254294 254319 254332 254341 254342 254349 254458 254459 254608"
-RUNLIST="254307 255981 256001 256002 256003 256167 256169 256171 256215 256237" #256245 256349 256350 256355 256406"
+#RUNLIST="254307 255981 256001 256002 256003 256167 256169 256171 256215 256237" #256245 256349 256350 256355 256406"
+
+#2016A runlist
+RUNLIST="270639 270862 270886 270887 271045 271047 271048 271049 271082 271084 271087 271142 271143 271144 271161 271167 271168 271169 271170 271188 271191 271192 271193 271195 271336 271337 271338 271342"
+RUNLIST="271195"
 
 STREAM=AlCaPhiSym
 NEVENTS=-1
 QUEUE=2nd
 EOSPREFIX=root://eoscms//eos/cms/
-EOSDIR=/store/group/dpg_ecal/alca_ecalcalib/EcalTiming/
+EOSDIR=/store/group/dpg_ecal/alca_ecalcalib/EcalTiming/Run2016A-v1/
 #DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/RunII/
 CONFIG=$PWD/test/ecalTime_fromAlcaStream_cfg.py
 EVENTSPERJOB=500000
@@ -93,15 +97,16 @@ fi
 
 for RUN in ${RUNLIST}
 do
-	if ! grep $RUN $JSON > /dev/null;
+	echo "=== RUN = ${RUN}"
+	if [ $JSON ] && ! grep $RUN $JSON > /dev/null;
 	then
 		echo $RUN not in JSON $JSON
 		continue
 	fi
-	echo "=== RUN = ${RUN}"
 	OUTDIR=$EOSDIR/${STREAM}-${RUN}/
+	$eos mkdir ${EOSDIR}
 	$eos mkdir ${OUTDIR}
-	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/${STREAM}-${RUN}/
+	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/Validation2/${STREAM}-${RUN}/
 	mkdir -p ${AFSDIR}
 
 	if [[ $STEP == *"RECO"* ]]

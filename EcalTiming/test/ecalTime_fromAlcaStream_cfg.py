@@ -224,7 +224,7 @@ recofile = recofile[:recofile.find(".root")] + "_RECO.root"
 process.RECOoutput = cms.OutputModule("PoolOutputModule",
 splitLevel = cms.untracked.int32(0),
 eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
-outputCommands = cms.untracked.vstring('drop *',"keep *_ecalRecHitE*Selector_*_*"),
+outputCommands = cms.untracked.vstring('drop *',"keep *_EcalTimingEventProducer_*_*"),
 fileName = cms.untracked.string(recofile),
 dataset = cms.untracked.PSet(
    filterName = cms.untracked.string(''),
@@ -329,6 +329,7 @@ process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
 #ESLooperProducer looper is imported here:
 process.load('EcalTiming.EcalTiming.RecHitsSelector_cfi')
+process.load('EcalTiming.EcalTiming.EcalTimingEventProducer_cfi')
 
 if doAnalysis:
 	process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
@@ -351,6 +352,7 @@ if doReco:
                       + process.digiStep 
                       + process.reco_step)
                       * (process.ecalRecHitEBSelector + process.ecalRecHitEESelector)
+                      * process.EcalTimingEvents
                       )
 
 

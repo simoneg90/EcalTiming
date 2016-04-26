@@ -122,18 +122,17 @@ private:
 	bool insertEvent(EcalTimingEvent te_, bool storeEvent)
 	{
 		if(!storeEvent) _storingEvents = false;
-		if(te_.timeError() > 0 && te_.timeError() < 1000 && te_.timeError() < 3) { //exclude values with wrong timeError estimation
-			_sum += te_.time();
-			_sum2 += te_.time() * te_.time();
-			_sumE += te_.energy();
-			_num++;
-			if(_storingEvents)
-				timingEvents.push_back(te_);
-			//updateChi2();
-			return true;
-		} else {
-			return false;
-		}
+                //exclude values with wrong timeError estimation
+		//if(!(te_.timeError() > 0 && te_.timeError() < 1000 && te_.timeError() < 3)) 
+                //   return false;
+
+                _sum += te_.time();
+                _sum2 += te_.time() * te_.time();
+                _sumE += te_.energy();
+                _num++;
+                if(_storingEvents)
+                   timingEvents.push_back(te_);
+                return true;
 	}
 
 	/* int filterOutliers(float threshold = 0.5) */
