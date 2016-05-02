@@ -106,11 +106,12 @@ do
 	OUTDIR=$EOSDIR/${STREAM}-${RUN}/
 	$eos mkdir ${EOSDIR}
 	$eos mkdir ${OUTDIR}
-	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/Validation2/${STREAM}-${RUN}/
+	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/Run2016-v1/${STREAM}-${RUN}/
 	mkdir -p ${AFSDIR}
 
 	if [[ $STEP == *"RECO"* ]]
 	then
+                echo "doing reco"
 		RECO="_RECO"
 		nfiles=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN} | count(file.name)" | sed '2 d'`
 		nfiles=${nfiles:19}
@@ -120,13 +121,14 @@ do
 			continue
 		fi
 
-		#echo Will run over $nfiles files
+		echo Will run over $nfiles files
 		filelist=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
 		# for file in ${filelist}
 		# do
 		# das_client.py --query="file=${file} | sum(file.nevents)"
 		# done
 	else
+                echo Not reco
 		#filelist=`grep ${RUN}  ~shervin/public/4peter/fileMap-sorted.dat  | cut -d ' ' -f2`
 		#filelist=(${OUTDIR}/ecalTiming_*_numEvent50000_RECO.root)
 		#filelist=${filelist[@]/#/file://}
@@ -149,10 +151,6 @@ do
 	i=0
 	for file in $filelist
 	do
-		if [ "$i" -gt 5 ] 
-		then
-			continue
-		fi
 		name=${i}
 		#let skip=$EVENTSPERJOB*$job
 		skip=0
@@ -170,7 +168,7 @@ do
 		echo "check if file exists"
 		if $eos ls ${OUTDIR}/${tmp_file_real}
 		then
-			echo "File exists"
+			echo File exists: ${OUTDIR}/${tmp_file_real}
 			let i=i+1
 			continue
 		fi

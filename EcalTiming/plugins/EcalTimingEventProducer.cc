@@ -55,8 +55,8 @@ class EcalTimingEventProducer : public edm::EDProducer {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
-		edm::InputTag _ecalRecHitsEBTAG;
-		edm::InputTag _ecalRecHitsEETAG;
+		edm::EDGetTokenT<EBRecHitCollection> _ecalRecHitsEBtoken;
+		edm::EDGetTokenT<EERecHitCollection> _ecalRecHitsEEtoken;
 };
 
 //
@@ -72,8 +72,8 @@ class EcalTimingEventProducer : public edm::EDProducer {
 // constructors and destructor
 //
 EcalTimingEventProducer::EcalTimingEventProducer(const edm::ParameterSet& iConfig):
-	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
-	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection"))
+	_ecalRecHitsEBtoken(consumes<EBRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitEBCollection"))),
+	_ecalRecHitsEEtoken(consumes<EERecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitEECollection")))
 {
    //register your products
    produces<EcalTimingCollection>();
@@ -100,9 +100,9 @@ EcalTimingEventProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSet
    using namespace edm;
 	// here the getByToken of the rechits
 	edm::Handle<EcalRecHitCollection> RecHitEBHandle;
-	iEvent.getByLabel(_ecalRecHitsEBTAG, RecHitEBHandle);
+	iEvent.getByToken(_ecalRecHitsEBtoken, RecHitEBHandle);
 	edm::Handle<EcalRecHitCollection> RecHitEEHandle;
-	iEvent.getByLabel(_ecalRecHitsEETAG, RecHitEEHandle);
+	iEvent.getByToken(_ecalRecHitsEEtoken, RecHitEEHandle);
 
         std::unique_ptr<EcalTimingCollection> timing_out(new EcalTimingCollection());
 

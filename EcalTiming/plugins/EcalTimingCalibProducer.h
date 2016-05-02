@@ -162,6 +162,7 @@ private:
 	unsigned int _maxLoop; ///< maximum number of loops for intercalibration
 	bool _isSplash; ///< flag to activate for splash analysis
 	bool _makeEventPlots; ///< flag for making plots for each event (meant for splashes)
+	edm::EDGetTokenT<EcalTimingCollection> _timingEvents; ///< input collection
 	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
 	edm::InputTag _ecalRecHitsEETAG;///< input collection
 	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
@@ -206,7 +207,7 @@ private:
 		 - at each iteration the recHit threshold is raised by _minRecHitEnergyStep
 		 If the recHit is used, the time information is added to _eventTimeMap
 	*/
-	bool addRecHit(const EcalRecHit& recHit, EventTimeMap& eventTimeMap_);
+	bool addRecHit(const EcalTimingEvent& recHit, EventTimeMap& eventTimeMap_);
 
 
 	/// Adds the recHit to the per Event histograms

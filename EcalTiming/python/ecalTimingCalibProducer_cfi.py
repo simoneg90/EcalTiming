@@ -4,6 +4,7 @@ timing = cms.EDFilter("EcalTimingCalibProducer",
                     maxLoop = cms.uint32(1),
                     isSplash = cms.bool(False),
                     makeEventPlots = cms.bool(False),
+                    timingCollection = cms.InputTag("EcalTimingEvents"),
                     recHitEBCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
                     recHitEECollection = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
                     recHitFlags = cms.vint32([0]), # only recHits with these flags are accepted for calibration

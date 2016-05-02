@@ -54,7 +54,7 @@ class RecHitSelector : public edm::EDProducer {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
-		edm::InputTag _ecalRecHitsTAG;
+                edm::EDGetTokenT<EcalRecHitCollection> _ebToken;
 		std::vector<int> _recHitFlags;
 		double _minRecHitEnergy;
                 double _maxTimeError;
@@ -75,7 +75,7 @@ class RecHitSelector : public edm::EDProducer {
 // constructors and destructor
 //
 RecHitSelector::RecHitSelector(const edm::ParameterSet& iConfig):
-	_ecalRecHitsTAG(iConfig.getParameter<edm::InputTag>("recHitCollection")),
+	_ebToken(consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitCollection"))),
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_minRecHitEnergy(iConfig.getParameter<double>("minRecHitEnergy")),
 	_maxTimeError(iConfig.getParameter<double>("maxTimeError")),
@@ -114,9 +114,9 @@ RecHitSelector::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
    using namespace edm;
 	// here the getByToken of the rechits
 	edm::Handle<EcalRecHitCollection> RecHitHandle;
-	iEvent.getByLabel(_ecalRecHitsTAG, RecHitHandle);
+	iEvent.getByToken(_ebToken, RecHitHandle);
 
-   std::unique_ptr<EcalRecHitCollection> rec_out(new EcalRecHitCollection());
+        std::unique_ptr<EcalRecHitCollection> rec_out(new EcalRecHitCollection());
 
 	for(auto  recHit_itr : *RecHitHandle) {
 		if(!recHit_itr.checkFlags(_recHitFlags)) continue;

@@ -34,6 +34,7 @@ EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfi
 	_maxLoop(iConfig.getParameter<unsigned int>("maxLoop")),
 	_isSplash(iConfig.getParameter<bool>("isSplash")),
 	_makeEventPlots(iConfig.getParameter<bool>("makeEventPlots")),
+	_timingEvents(consumes<EcalTimingCollection>(iConfig.getParameter<edm::InputTag>("timingCollection"))),
 	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
 	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
 	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
@@ -98,17 +99,19 @@ void EcalTimingCalibProducer::beginJob()
 }
 
 
-bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit, EventTimeMap& eventTimeMap_)
+bool EcalTimingCalibProducer::addRecHit(const EcalTimingEvent& timeEvent, EventTimeMap& eventTimeMap_)
 {
+   //TODO: this checks are moved to EcalTimingEventProducer: flags, chi2
 	//check if rechit is valid
-	if(! recHit.checkFlags(_recHitFlags)) return false;
+	//if(! timeEvent.checkFlags(_recHitFlags)) return false;
 
-	std::pair<float, float> energyThreshold = getEnergyThreshold(recHit.detid()); // first->energy threshold, second->chi2 threshold
-	if( (recHit.energy() < (energyThreshold.first)) || (recHit.chi2()>energyThreshold.second)) return false; // minRecHitEnergy in ADC for EB - the minChi2 value has to be implemented separately like the minEnergy
+	std::pair<float, float> energyThreshold = getEnergyThreshold(timeEvent.detid()); // first->energy threshold, second->chi2 threshold
+	//if( (timeEvent.energy() < (energyThreshold.first)) || (timeEvent.chi2()>energyThreshold.second)) return false; // minRecHitEnergy in ADC for EB - the minChi2 value has to be implemented separately like the minEnergy
+        //Timing event doesn't have chi2
+	if( (timeEvent.energy() < (energyThreshold.first)) ) return false; // minRecHitEnergy in ADC for EB - the minChi2 value has to be implemented separately like the minEnergy
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
-	EcalTimingEvent timeEvent(recHit);
-	_eventTimeMap.emplace(recHit.detid(), timeEvent);
+	_eventTimeMap.emplace(timeEvent.detid(), timeEvent);
 
 
 	return true;
@@ -117,28 +120,28 @@ bool EcalTimingCalibProducer::addRecHit(const EcalRecHit& recHit, EventTimeMap& 
 /**
    fills the energy map and timing maps for EB, EE+ and EE-
  */
-void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& recHit)
+void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& timeEvent)
 {
-	if(recHit.detid().subdetId() == EcalBarrel) {
-		EBDetId id(recHit.detid());
+	if(timeEvent.detid().subdetId() == EcalBarrel) {
+		EBDetId id(timeEvent.detid());
 		// Fill Rechit Energy
-		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), recHit.energy()); // 2D energy map
-		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), recHit.time()); // 2D time map
-		RechitEnergyTimeEB->Fill(recHit.energy(), recHit.time());
+		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), timeEvent.energy()); // 2D energy map
+		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), timeEvent.time()); // 2D time map
+		RechitEnergyTimeEB->Fill(timeEvent.energy(), timeEvent.time());
 		OccupancyEB_->Fill(id.ieta(), id.iphi(), 1);
 	} else {
 		// create EEDetId
-		EEDetId id(recHit.detid());
+		EEDetId id(timeEvent.detid());
 		if(id.zside() < 0) {
-			Event_EneMapEEM_->Fill(id.ix(), id.iy(), recHit.energy());
-			Event_TimeMapEEM_->Fill(id.ix(), id.iy(), recHit.time());
-			RechitEnergyTimeEEM->Fill(recHit.energy(), recHit.time());
+			Event_EneMapEEM_->Fill(id.ix(), id.iy(), timeEvent.energy());
+			Event_TimeMapEEM_->Fill(id.ix(), id.iy(), timeEvent.time());
+			RechitEnergyTimeEEM->Fill(timeEvent.energy(), timeEvent.time());
 			OccupancyEEM_->Fill(id.ix(), id.iy(), 1);
 
 		} else {
-			Event_EneMapEEP_->Fill(id.ix(), id.iy(), recHit.energy());
-			Event_TimeMapEEP_->Fill(id.ix(), id.iy(), recHit.time());
-			RechitEnergyTimeEEP->Fill(recHit.energy(), recHit.time());
+			Event_EneMapEEP_->Fill(id.ix(), id.iy(), timeEvent.energy());
+			Event_TimeMapEEP_->Fill(id.ix(), id.iy(), timeEvent.time());
+			RechitEnergyTimeEEP->Fill(timeEvent.energy(), timeEvent.time());
 			OccupancyEEP_->Fill(id.ix(), id.iy(), 1);
 		}
 	}
@@ -183,10 +186,16 @@ bool EcalTimingCalibProducer::filter(edm::Event& iEvent, const edm::EventSetup& 
 	elecMap_ = hElecMap.product();
 
 	// here the getByToken of the rechits
-	edm::Handle<EBRecHitCollection> ebRecHitHandle;
-	iEvent.getByLabel(_ecalRecHitsEBTAG, ebRecHitHandle);
-	edm::Handle<EERecHitCollection> eeRecHitHandle;
-	iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
+	edm::Handle<EcalTimingCollection> timingCollection;
+	iEvent.getByToken(_timingEvents, timingCollection);
+        //Now we get the timing events from our new producer
+	//edm::Handle<EBRecHitCollection> ebRecHitHandle;
+	//iEvent.getByLabel(_ecalRecHitsEBTAG, ebRecHitHandle);
+	//edm::Handle<EERecHitCollection> eeRecHitHandle;
+	//iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
+#ifdef DEBUG
+        std::cout << "Nhits\t" << timingCollection->size() << std::endl;
+#endif
 
 
 	_eventTimeMap.clear(); // reset the map of time from recHits for this event
@@ -200,27 +209,25 @@ bool EcalTimingCalibProducer::filter(edm::Event& iEvent, const edm::EventSetup& 
 	timeEEP.clear(); // reset the map for one ring in EE+
 
 	// loop over the recHits and add those passing the selection to the list of recHits to be used for timing:  eventTimeMap
-	// recHit_itr is of type: edm::Handle<EcalRecHitCollection>::const_iterator
-	for(auto  recHit_itr = ebRecHitHandle->begin(); recHit_itr != ebRecHitHandle->end(); ++recHit_itr) {
-		// add the recHit to the list of recHits used for calibration (with the relative information)
-		if(addRecHit(*recHit_itr, _eventTimeMap)) {
-			timeEB.add(EcalTimingEvent(*recHit_itr), false);
-		}
-	}
-
-	// same for EE
-	for(auto recHit_itr = eeRecHitHandle->begin(); recHit_itr != eeRecHitHandle->end(); ++recHit_itr) {
-		// add the recHit to the list of recHits used for calibration (with the relative information)
-		if(addRecHit(*recHit_itr, _eventTimeMap)) { // true if the recHit passes the selection and then added to the timeCalibMap
-			// create EEDetId
-			EEDetId id(recHit_itr->detid());
-			if(id.zside() < 0) {
-				timeEEM.add(EcalTimingEvent(*recHit_itr), false);
-			} else {
-				timeEEP.add(EcalTimingEvent(*recHit_itr), false);
-			}
-		}
-	}
+	// timeEvent is of type: edm::Handle<EcalTimingEvent>::const_iterator
+        for(auto  timeEvent : *timingCollection) {
+           // add the recHit to the list of recHits used for calibration (with the relative information)
+#ifdef DEBUG
+           std::cout << timeEvent << std::endl;
+#endif
+           if(addRecHit(timeEvent, _eventTimeMap)) {
+              if( timeEvent.detid().subdetId() == EcalBarrel)
+                 timeEB.add(EcalTimingEvent(timeEvent), false);
+              else {
+                 EEDetId id(timeEvent.detid());
+                 if(id.zside() < 0) {
+                    timeEEM.add(EcalTimingEvent(timeEvent), false);
+                 } else {
+                    timeEEP.add(EcalTimingEvent(timeEvent), false);
+                 }
+              }
+           }
+        }
 
 #ifdef DEBUG
 	std::cout << "[DEBUG]" << "nRecHits passing selection"

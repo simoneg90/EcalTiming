@@ -67,7 +67,7 @@ options.register('globaltag',
                  VarParsing.VarParsing.varType.string,
                  "Global tag to use, no default")
 options.register('loneBunch',
-                   1,
+                   0,
                    VarParsing.VarParsing.multiplicity.singleton,
                    VarParsing.VarParsing.varType.int,
                    "0=No, 1=Yes"
@@ -102,7 +102,7 @@ if "TIME" not in processname:
 process = cms.Process(processname)
 
 # if the one file is a folder, grab all the files in it that are RECO
-if len(options.files) == 1 and options.files[0][-1] == '/' and doReco:
+if len(options.files) == 1 and options.files[0][-1] == '/' and not doReco:
 	from EcalTiming.EcalTiming.storeTools_cff import fillFromStore
 	files = fillFromStore(options.files[0])
 	options.files.pop()
@@ -157,10 +157,13 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
     HLTPaths = ['HLT_EG20*', 'HLT_SplashEcalSumET', 'HLT_Calibration','HLT_EcalCalibration','HLT_HcalCalibration','HLT_Random','HLT_Physics','HLT_HcalNZS','HLT_SplashEcalSumET','HLTriggerFinalPath' ]
 )
 
-
-## GlobalTag Conditions Related
-from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, options.globaltag, '')
+# GLOBAL-TAG
+from CondCore.DBCommon.CondDBSetup_cfi import *
+process.GlobalTag = cms.ESSource("PoolDBESSource",
+                                 CondDBSetup,
+                                 connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'),
+                                 globaltag = cms.string(options.globaltag)
+)
 
 
 ##  This section is for grabbing the constants from a FrontierPrep for validation
@@ -224,7 +227,7 @@ recofile = recofile[:recofile.find(".root")] + "_RECO.root"
 process.RECOoutput = cms.OutputModule("PoolOutputModule",
 splitLevel = cms.untracked.int32(0),
 eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
-outputCommands = cms.untracked.vstring('drop *',"keep *_EcalTimingEventProducer_*_*"),
+outputCommands = cms.untracked.vstring('drop *',"keep *_EcalTimingEvents_*_*"),
 fileName = cms.untracked.string(recofile),
 dataset = cms.untracked.PSet(
    filterName = cms.untracked.string(''),

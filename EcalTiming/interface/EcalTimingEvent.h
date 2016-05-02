@@ -16,6 +16,12 @@
 class EcalTimingEvent
 {
 public:
+        EcalTimingEvent()
+        {
+           detid_ = DetId(0);
+           setTime(MAX_TIME);
+           setEnergy(MAX_ENERGY);
+        }
 	EcalTimingEvent(DetId id) {
            detid_ = id;
            setTime(MAX_TIME);
