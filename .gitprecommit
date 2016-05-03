@@ -1,0 +1,13 @@
+#!/bin/sh
+fileList=`git diff --cached --name-only`
+
+command="astyle -A3 -t -p  -n" 
+for file in $fileList
+do
+    case $file in
+    *.c | *.cc) $command $file; git add $file;;
+    *.h | *.hh) $command $file; git add $file;;
+    *.cpp)      $command $file; git add $file;;
+    esac
+done
+exit 0

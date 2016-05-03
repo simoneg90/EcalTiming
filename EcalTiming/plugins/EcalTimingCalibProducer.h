@@ -159,20 +159,14 @@ private:
 	 */
 	///@{
 
-	unsigned int _maxLoop; ///< maximum number of loops for intercalibration
 	bool _isSplash; ///< flag to activate for splash analysis
 	bool _makeEventPlots; ///< flag for making plots for each event (meant for splashes)
 	edm::EDGetTokenT<EcalTimingCollection> _timingEvents; ///< input collection
-	edm::InputTag _ecalRecHitsEBTAG; ///< input collection
-	edm::InputTag _ecalRecHitsEETAG;///< input collection
-	std::vector<int> _recHitFlags; ///< vector containing list of valid rec hit flags for calibration
 	unsigned int _recHitMin; ///< require at least this many rec hits to count the event
 	double _minRecHitEnergyStep; ///< to check step size to check energy stability
 	double _minRecHitEnergyNStep; ///< number of steps to check energy stability
    double _energyThresholdOffsetEB; ///< energy to add to the minimum energy thresholc
    double _energyThresholdOffsetEE; ///< energy to add to the minimum energy thresholc
-   double _chi2ThresholdOffsetEB; //chi2 square thr for the Barrel --- Added
-   double _chi2ThresholdOffsetEE; //chi2 square thr for the Endcap --- Added
 	unsigned int _minEntries; ///< require a minimum number of entries in a ring to do averages
 	float        _globalOffset;    ///< time to subtract from every event
    bool _storeEvents;
@@ -222,23 +216,19 @@ private:
 	{
 		return (elecMap_->getElectronicsId(id).rawId() >> 6) & 0x3FFF;
 	}
-	//float getEnergyThreshold(const DetId detid)
-	std::pair <float, float> getEnergyThreshold(const DetId detid)
-	{
-		int iRing = _ringTools.getRingIndexInSubdet(detid);
-	//std::pair <float, float> outputThr = detid.subdetId() == EcalBarrel ? {13 * 0.04  + _energyThresholdOffsetEB, _chi2ThresholdOffsetEB} : {20 * (79.29 - 4.148 * iRing + 0.2442 * iRing * iRing ) / 1000  + _energyThresholdOffsetEE, _chi2ThresholdOffsetEE}
-		std::pair <float, float> outputThr;
-		if (detid.subdetId() == EcalBarrel){
-			outputThr = {13 * 0.04  + _energyThresholdOffsetEB, _chi2ThresholdOffsetEB};
-		}else{
-			outputThr = {20 * (79.29 - 4.148 * iRing + 0.2442 * iRing * iRing ) / 1000  + _energyThresholdOffsetEE, _chi2ThresholdOffsetEE};
-		}
-	//return detid.subdetId() == EcalBarrel ? 13 * 0.04  + _energyThresholdOffsetEB :  
-	//	20 * (79.29 - 4.148 * iRing + 0.2442 * iRing * iRing ) / 1000  + _energyThresholdOffsetEE;
-	return outputThr;
-	}
 
 	std::map<DetId, float>  _CrysEnergyMap;
+	float getEnergyThreshold(const DetId detid)
+	{
+           auto itr = _CrysEnergyMap.find(detid);
+           if(itr == _CrysEnergyMap.end())
+           {
+              int iRing = _ringTools.getRingIndexInSubdet(detid);
+              _CrysEnergyMap[detid] = detid.subdetId() == EcalBarrel ? 13 * 0.04  + _energyThresholdOffsetEB :  
+              20 * (79.29 - 4.148 * iRing + 0.2442 * iRing * iRing ) / 1000  + _energyThresholdOffsetEE;
+           }
+           return _CrysEnergyMap[detid];
+        }
 
 	edm::Service<TFileService> fileService_;
 	TFileDirectory histDir_;

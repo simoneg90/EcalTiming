@@ -2,13 +2,13 @@
 \page instructions_ Instructions
 Download the code:
 \verbatim
-scram project CMSSW_7_4_2
-cd CMSSW_7_4_2/src
+scram project CMSSW_8_0_4
+cd CMSSW_8_0_4/src
 cmsenv
-git cms-merge-topic shervin86:iRingInSubdet
+git cms-merge-topic previsualconsent:iRingSebdet804
 git clone  git@github.com:previsualconsent/EcalTiming.git
 cd EcalTiming
-checkout energystability
+checkout Run2016
 scram b -j16
 \endverbatim
 
@@ -25,7 +25,7 @@ Then add the following pre-commit hook into your GIT_DIR:
 \verbatim
 cd $CMSSW_BASE/src/EcalTiming/
 if [ -d ".git/hooks" ];then
-  wget -O .git/hooks/pre-commit https://raw.githubusercontent.com/UMN-CMS/cms-WR/master/scripts/formatCode.sh
+   cp .gitprecommit .git/hooks/pre-commit
 else 
   echo "[ERROR] You are not in the main directory of this repository" >> /dev/stderr
 fi

@@ -7,7 +7,7 @@
 __init__.py
 *.old
 pippo*
-*processDump.py
+*processDump*.py
 *.pyc
 html/*
 LSF*

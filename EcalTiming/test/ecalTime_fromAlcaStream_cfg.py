@@ -132,8 +132,6 @@ else:
     process.load('Configuration/StandardSequences/Reconstruction_cff')
     process.recoSequence = cms.Sequence(process.calolocalreco )#+ process.egammaCosmics)
 
-#process.load('PhiSym.EcalCalibAlgos.ecalPhiSymLocarecoWeights_cff')
-#process.load('RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 process.load('EcalTiming.EcalTiming.ecalLocalRecoSequenceAlCaStream_cff')
@@ -278,15 +276,6 @@ if(options.isSplash==1):
     process.reco_step = cms.Sequence(process.caloCosmicOrSplashRECOSequence)
 else:
     if(options.streamName=="AlCaP0"):
-      #from RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff import *
-      ##process.reco_step = cms.Sequence(ecalMultiFitUncalibRecHit *
-      ##                                    ecalRecHit)
-      #process.ecalMultiFitUncalibRecHit = RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi.ecalMultiFitUncalibRecHit.clone()
-
-      #process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag('dummyHits','dummyBarrelDigis')#,'piZeroAnalysis')
-      #process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag('dummyHits','dummyEndcapDigis')#,'piZeroAnalysis')
-      #ecalRecHit.killDeadChannels = False
-      #ecalRecHit.recoverEBFE = False
       if(options.loneBunch==1):
         process.filter+=process.triggerSelectionLoneBunch
       import RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi
@@ -328,16 +317,11 @@ evtPlots = True if options.isSplash else False
 process.load("Geometry.EcalCommonData.EcalOnly_cfi")
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
-#process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 
-#ESLooperProducer looper is imported here:
-process.load('EcalTiming.EcalTiming.RecHitsSelector_cfi')
-process.load('EcalTiming.EcalTiming.EcalTimingEventProducer_cfi')
 
 if doAnalysis:
 	process.load('EcalTiming.EcalTiming.ecalTimingCalibProducer_cfi')
-	process.timing.recHitEBCollection = cms.InputTag("ecalRecHitEBSelector")
-	process.timing.recHitEECollection = cms.InputTag("ecalRecHitEESelector")
+	process.timing.timingCollection = cms.InputTag("EcalTimingEvents")
 	process.timing.isSplash= cms.bool(True if options.isSplash else False)
 	process.timing.makeEventPlots=evtPlots
 	process.timing.globalOffset = cms.double(options.offset)
@@ -345,17 +329,14 @@ if doAnalysis:
 	process.timing.energyThresholdOffsetEB = cms.double(options.minEnergyEB)
 	process.timing.energyThresholdOffsetEE = cms.double(options.minEnergyEE)
 	process.timing.storeEvents = cms.bool(True)
-	process.timing.chi2ThresholdOffsetEB = cms.double(options.minChi2EB)
-	process.timing.chi2ThresholdOffsetEE = cms.double(options.minChi2EE)
 	process.analysis = cms.Sequence( process.timing )
 
-
+process.load('EcalTiming.EcalTiming.EcalTimingSequence_cff')
 if doReco:
 	process.reco = cms.Sequence( (process.filter 
                       + process.digiStep 
                       + process.reco_step)
-                      * (process.ecalRecHitEBSelector + process.ecalRecHitEESelector)
-                      * process.EcalTimingEvents
+                      * process.EcalTimingEventSeq
                       )
 
 

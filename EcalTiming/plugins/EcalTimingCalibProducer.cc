@@ -31,39 +31,24 @@ using namespace cms;
 // constructors and destructor
 //
 EcalTimingCalibProducer::EcalTimingCalibProducer(const edm::ParameterSet& iConfig) :
-	_maxLoop(iConfig.getParameter<unsigned int>("maxLoop")),
 	_isSplash(iConfig.getParameter<bool>("isSplash")),
 	_makeEventPlots(iConfig.getParameter<bool>("makeEventPlots")),
 	_timingEvents(consumes<EcalTimingCollection>(iConfig.getParameter<edm::InputTag>("timingCollection"))),
-	_ecalRecHitsEBTAG(iConfig.getParameter<edm::InputTag>("recHitEBCollection")),
-	_ecalRecHitsEETAG(iConfig.getParameter<edm::InputTag>("recHitEECollection")),
-	_recHitFlags(iConfig.getParameter<std::vector<int> >("recHitFlags")),
 	_recHitMin(iConfig.getParameter<unsigned int>("recHitMinimumN")),
 
 	///\todo the min energy should be in ADC not in energy
 	_minRecHitEnergyStep(iConfig.getParameter<double>("minRecHitEnergyStep")),
-	_minRecHitEnergyNStep(iConfig.getParameter<double>("minRecHitEnergyNStep")),
-   _energyThresholdOffsetEB(iConfig.getParameter<double>("energyThresholdOffsetEB")),
-   _energyThresholdOffsetEE(iConfig.getParameter<double>("energyThresholdOffsetEE")),
-   _chi2ThresholdOffsetEB(iConfig.getParameter<double>("chi2ThresholdOffsetEB")),//added
-   _chi2ThresholdOffsetEE(iConfig.getParameter<double>("chi2ThresholdOffsetEE")),//added
-	_minEntries(iConfig.getParameter<unsigned int>("minEntries")),
-	_globalOffset(iConfig.getParameter<double>("globalOffset")),
+        _minRecHitEnergyNStep(iConfig.getParameter<double>("minRecHitEnergyNStep")),
+        _energyThresholdOffsetEB(iConfig.getParameter<double>("energyThresholdOffsetEB")),
+        _energyThresholdOffsetEE(iConfig.getParameter<double>("energyThresholdOffsetEE")),
+        _minEntries(iConfig.getParameter<unsigned int>("minEntries")),
+        _globalOffset(iConfig.getParameter<double>("globalOffset")),
 	_storeEvents(iConfig.getParameter<bool>("storeEvents")),
 	_produceNewCalib(iConfig.getParameter<bool>("produceNewCalib")),
 	_outputDumpFileName(iConfig.getParameter<std::string>("outputDumpFile")),
 	_maxSkewnessForDump(iConfig.getParameter<double>("maxSkewnessForDump")),
 	_ringTools(EcalRingCalibrationTools())
 {
-	//_ecalRecHitsEBToken = edm::consumes<EcalRecHitCollection>(iConfig.getParameter< edm::InputTag > ("ebRecHitsLabel"));
-	//the following line is needed to tell the framework what
-	// data is being produced
-	//if(_produceNewCalib) {
-	//	setWhatProduced(this,  &EcalTimingCalibProducer::produceCalibConstants);
-//	//setWhatProduced(this, &EcalTimingCalibProducer::produceCalibErrors);
-	//	setWhatProduced(this, &EcalTimingCalibProducer::produceOffsetConstant);
-	//}
-	//now do what ever other initialization is needed
 }
 
 
@@ -101,18 +86,11 @@ void EcalTimingCalibProducer::beginJob()
 
 bool EcalTimingCalibProducer::addRecHit(const EcalTimingEvent& timeEvent, EventTimeMap& eventTimeMap_)
 {
-   //TODO: this checks are moved to EcalTimingEventProducer: flags, chi2
-	//check if rechit is valid
-	//if(! timeEvent.checkFlags(_recHitFlags)) return false;
-
-	std::pair<float, float> energyThreshold = getEnergyThreshold(timeEvent.detid()); // first->energy threshold, second->chi2 threshold
-	//if( (timeEvent.energy() < (energyThreshold.first)) || (timeEvent.chi2()>energyThreshold.second)) return false; // minRecHitEnergy in ADC for EB - the minChi2 value has to be implemented separately like the minEnergy
-        //Timing event doesn't have chi2
-	if( (timeEvent.energy() < (energyThreshold.first)) ) return false; // minRecHitEnergy in ADC for EB - the minChi2 value has to be implemented separately like the minEnergy
+	float energyThreshold = getEnergyThreshold(timeEvent.detid()); 
+	if( timeEvent.energy() < (energyThreshold) ) return false;
 
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 	_eventTimeMap.emplace(timeEvent.detid(), timeEvent);
-
 
 	return true;
 }
@@ -188,11 +166,6 @@ bool EcalTimingCalibProducer::filter(edm::Event& iEvent, const edm::EventSetup& 
 	// here the getByToken of the rechits
 	edm::Handle<EcalTimingCollection> timingCollection;
 	iEvent.getByToken(_timingEvents, timingCollection);
-        //Now we get the timing events from our new producer
-	//edm::Handle<EBRecHitCollection> ebRecHitHandle;
-	//iEvent.getByLabel(_ecalRecHitsEBTAG, ebRecHitHandle);
-	//edm::Handle<EERecHitCollection> eeRecHitHandle;
-	//iEvent.getByLabel(_ecalRecHitsEETAG, eeRecHitHandle);
 #ifdef DEBUG
         std::cout << "Nhits\t" << timingCollection->size() << std::endl;
 #endif
@@ -312,8 +285,8 @@ void EcalTimingCalibProducer::endJob()
 
 			// check if result is stable as function of energy
 			std::vector< std::pair<float, EcalCrystalTimingCalibration*> > energyStability;
-			std::pair <float, float> energyThreshold = getEnergyThreshold(calibRecHit_itr->first);
-			if(! calibRecHit_itr->second.isStableInEnergy(energyThreshold.first, energyThreshold.first + _minRecHitEnergyStep * _minRecHitEnergyNStep, _minRecHitEnergyStep, energyStability)) {
+			float energyThreshold = getEnergyThreshold(calibRecHit_itr->first);
+			if(! calibRecHit_itr->second.isStableInEnergy(energyThreshold, energyThreshold + _minRecHitEnergyStep * _minRecHitEnergyNStep, _minRecHitEnergyStep, energyStability)) {
 				ds |= DS_UNSTABLE_EN;
 			}
 			FillEnergyStabilityHists(calibRecHit_itr, energyStability);
