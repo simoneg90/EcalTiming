@@ -68,7 +68,6 @@ EcalTimingCalibProducer::~EcalTimingCalibProducer()
 void EcalTimingCalibProducer::beginJob()
 {
 	std::cout << "Begin job: createConstants" << std::endl;
-	//createConstants(iSetup);
 
 	// Initialize histograms at start of Loop
 	char histDirName[100];
