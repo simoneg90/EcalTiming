@@ -99,6 +99,8 @@
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
 
+#include "CondFormats/DataRecord/interface/EcalGainRatiosRcd.h" //added...was giving errors while analyzing
+
 #include "TProfile.h"
 #include "TGraphErrors.h"
 #include "TGraph.h"

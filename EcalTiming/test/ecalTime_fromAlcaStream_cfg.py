@@ -62,7 +62,7 @@ options.register('streamName',
                  VarParsing.VarParsing.varType.string,
                  "type of stream: AlCaPhiSym or AlCaP0")
 options.register('globaltag',
-                 '',
+                 '80X_dataRun2_Prompt_v8',#'80X_dataRun2_HLT_v12',#'80X_dataRun2_Prompt_v8',
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "Global tag to use, no default")
@@ -141,8 +141,8 @@ if(options.streamName=="AlCaP0"):
     process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltAlCaPi0EBRechitsToDigis","pi0EBDigis")
     process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltAlCaPi0EERechitsToDigis","pi0EEDigis")
 else:
-    process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEB")
-    process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEE")
+    process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEB") 
+    process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEE") 
 
 
 ## Raw to Digi
@@ -156,12 +156,29 @@ process.spashesHltFilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.cl
 )
 
 # GLOBAL-TAG
+process.load("CondCore.CondDB.CondDB_cfi")
 from CondCore.DBCommon.CondDBSetup_cfi import *
+#from CondCore.CondDB.CondDB_cfi import *
+#global tag to be used always
 process.GlobalTag = cms.ESSource("PoolDBESSource",
-                                 CondDBSetup,
+                                 CondDBSetup, #CondDBSetup
                                  connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'),
                                  globaltag = cms.string(options.globaltag)
 )
+
+#global tag to be used for RERECO
+#process.GlobalTag = cms.ESSource("PoolDBESSource",
+#                                  CondDBSetup,
+#                                  connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'),
+#                                  globaltag = cms.string('80X_dataRun2_Prompt_v8'),
+#                                  toGet = cms.VPSet(
+#                                    cms.PSet(record = cms.string("EcalTimeCalibConstantsRcd"),
+#                                    tag = cms.string("EcalIntercalibConstants_Cal_Jun2016_v1"),
+#                                    connect = cms.string('sqlite_file:/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/RunII-time/Cal_Jun2016/tags/sqlite/EcalIntercalibConstants_Cal_Jun2016_v1.db'),
+#                                    )
+#                                  ),
+#)
+#
 
 
 ##  This section is for grabbing the constants from a FrontierPrep for validation
@@ -259,17 +276,88 @@ process.dummyHits = cms.EDProducer("DummyRechitDigis",
                                     endcapDigiCollection   = cms.untracked.string("dummyEndcapDigisPi0"))
 
 ##ADDED
-# TRIGGER RESULTS FILTER                                                                                                                                                                                                                                                                   
-process.triggerSelectionLoneBunch = cms.EDFilter( "TriggerResultsFilter",
-                                                   triggerConditions = cms.vstring('L1_AlwaysTrue'),
-                                                   hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
-                                                   l1tResults = cms.InputTag( "hltGtDigis" ),
-                                                   l1tIgnoreMask = cms.bool( False ),
-                                                   l1techIgnorePrescales = cms.bool( False ),
-                                                   daqPartitions = cms.uint32( 1 ),
-                                                   throw = cms.bool( True )
-                                                   )
+# TRIGGER RESULTS FILTER
 
+process.StableParametersRcdSource = cms.ESSource( "EmptyESSource",
+    iovIsRunNotTime = cms.bool( True ),
+    recordName = cms.string( "L1TGlobalStableParametersRcd" ),
+    firstValid = cms.vuint32( 1 )
+)
+
+process.GlobalParametersRcdSource = cms.ESSource( "EmptyESSource",
+    iovIsRunNotTime = cms.bool( True ),
+    recordName = cms.string( "L1TGlobalParametersRcd" ),
+    firstValid = cms.vuint32( 1 )
+)
+
+
+process.StableParameters = cms.ESProducer( "StableParametersTrivialProducer",
+   NumberL1IsoEG = cms.uint32( 4 ),
+   NumberL1JetCounts = cms.uint32( 12 ),
+   NumberPhysTriggersExtended = cms.uint32( 64 ),
+   NumberTechnicalTriggers = cms.uint32( 64 ),
+   NumberL1NoIsoEG = cms.uint32( 4 ),
+   IfCaloEtaNumberBits = cms.uint32( 4 ),
+   NumberL1CenJet = cms.uint32( 4 ),
+   NumberL1TauJet = cms.uint32( 4 ),
+   NumberL1Mu = cms.uint32( 4 ),
+   NumberConditionChips = cms.uint32( 1 ),
+   IfMuEtaNumberBits = cms.uint32( 6 ),
+   NumberPsbBoards = cms.int32( 7 ),
+   NumberPhysTriggers = cms.uint32( 512 ),
+   PinsOnConditionChip = cms.uint32( 512 ),
+   UnitLength = cms.int32( 8 ),
+   NumberL1ForJet = cms.uint32( 4 ),
+   WordLength = cms.int32( 64 ),
+   OrderConditionChip = cms.vint32( 1 )
+)
+
+process.hltGtStage2ObjectMap = cms.EDProducer( "L1TGlobalProducer",
+    L1DataBxInEvent = cms.int32( 5 ),
+    JetInputTag = cms.InputTag( 'hltCaloStage2Digis','Jet' ),
+    AlgorithmTriggersUnmasked = cms.bool( True ),
+    EmulateBxInEvent = cms.int32( 1 ),
+    ExtInputTag = cms.InputTag( "hltGtStage2Digis" ),
+    AlgorithmTriggersUnprescaled = cms.bool( True ),
+    Verbosity = cms.untracked.int32( 0 ),
+    EtSumInputTag = cms.InputTag( 'hltCaloStage2Digis','EtSum' ),
+    ProduceL1GtDaqRecord = cms.bool( True ),
+    PrescaleSet = cms.uint32( 1 ),
+    EGammaInputTag = cms.InputTag( 'hltCaloStage2Digis','EGamma' ),
+    TriggerMenuLuminosity = cms.string( "startup" ),
+    ProduceL1GtObjectMapRecord = cms.bool( True ),
+    AlternativeNrBxBoardDaq = cms.uint32( 0 ),
+    PrescaleCSVFile = cms.string( "prescale_L1TGlobal.csv" ),
+    TauInputTag = cms.InputTag( 'hltCaloStage2Digis','Tau' ),
+    BstLengthBytes = cms.int32( -1 ),
+    MuonInputTag = cms.InputTag( 'hltGmtStage2Digis','Muon' )
+)
+
+process.triggerSelectionLoneBunch = cms.EDFilter( "HLTL1TSeed",
+    L1SeedsLogicalExpression = cms.string( "L1_IsolatedBunch" ),
+    L1EGammaInputTag = cms.InputTag( 'hltCaloStage2Digis','EGamma' ),
+    L1JetInputTag = cms.InputTag( 'hltCaloStage2Digis','Jet' ),
+    saveTags = cms.bool( True ),
+    L1ObjectMapInputTag = cms.InputTag( "hltGtStage2ObjectMap" ),
+    L1EtSumInputTag = cms.InputTag( 'hltCaloStage2Digis','EtSum' ),
+    L1TauInputTag = cms.InputTag( 'hltCaloStage2Digis','Tau' ),
+    L1MuonInputTag = cms.InputTag( 'hltGmtStage2Digis','Muon' ),
+    L1GlobalInputTag = cms.InputTag( "hltGtStage2Digis" )
+)
+
+
+
+
+#process.triggerSelectionLoneBunch = cms.EDFilter( "TriggerResultsFilter",
+#                                                   triggerConditions = cms.vstring('L1_IsolatedBunch'),#'L1_AlwaysTrue', 'L1_IsolatedBunch'),
+#                                                   hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+#                                                   l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+#                                                   l1tIgnoreMask = cms.bool( False ),
+#                                                   l1techIgnorePrescales = cms.bool( False ),
+#                                                   daqPartitions = cms.uint32( 1 ),
+#                                                   throw = cms.bool( True )
+#                                                   )
+#
 process.filter=cms.Sequence()
 if(options.isSplash==1):
     process.filter+=process.spashesHltFilter
@@ -300,7 +388,10 @@ else:
     else:
       #process.reco_step = cms.Sequence(process.reconstruction_step_multiFit)
       if(options.loneBunch==1):
-        process.filter+=process.triggerSelectionLoneBunch
+        #process.filter+=process.triggerSelectionLoneBunch
+        process.filter*=process.hltGtStage2ObjectMap
+        process.filter*=process.triggerSelectionLoneBunch
+        process.filter*=process.bunchSpacingProducer
       process.reco_step = cms.Sequence(process.ecalLocalRecoSequenceAlCaStream)
       
 
@@ -311,7 +402,7 @@ if(options.isSplash==0):
 
 
 evtPlots = True if options.isSplash else False
-
+#evtPlots= True
 
 #import Electronics mapping
 process.load("Geometry.EcalCommonData.EcalOnly_cfi")

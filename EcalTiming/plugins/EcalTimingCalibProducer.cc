@@ -86,8 +86,33 @@ void EcalTimingCalibProducer::beginJob()
 bool EcalTimingCalibProducer::addRecHit(const EcalTimingEvent& timeEvent, EventTimeMap& eventTimeMap_)
 {
 	float energyThreshold = getEnergyThreshold(timeEvent.detid()); 
-	if( timeEvent.energy() < (energyThreshold) ) return false;
+        if( timeEvent.energy() < (energyThreshold) ) return false;
 
+         if(timeEvent.detid().subdetId() == EcalBarrel) {
+           EBDetId id(timeEvent.detid());
+           // Fill Rechit Energy
+           //Event_EneMapEB_->Fill(id.ieta(), id.iphi(), timeEvent.energy()); // 2D energy map
+           //Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), timeEvent.time()); // 2D time map
+           //RechitEnergyTimeEB->Fill(timeEvent.energy(), timeEvent.time());
+           OccupancyEB_->Fill(id.iphi(), id.ieta(), 1);
+         } else {
+           // create EEDetId
+           EEDetId id(timeEvent.detid());
+           if(id.zside() < 0) {
+             //Event_EneMapEEM_->Fill(id.ix(), id.iy(), timeEvent.energy());
+             //Event_TimeMapEEM_->Fill(id.ix(), id.iy(), timeEvent.time());
+             //RechitEnergyTimeEEM->Fill(timeEvent.energy(), timeEvent.time());
+             OccupancyEEM_->Fill(id.ix(), id.iy(), 1);
+              
+           } else {
+             //Event_EneMapEEP_->Fill(id.ix(), id.iy(), timeEvent.energy());
+             //Event_TimeMapEEP_->Fill(id.ix(), id.iy(), timeEvent.time());
+             //RechitEnergyTimeEEP->Fill(timeEvent.energy(), timeEvent.time());
+             OccupancyEEP_->Fill(id.ix(), id.iy(), 1);
+           }
+         }
+
+        
 	// add the EcalTimingEvent to the EcalCreateTimeCalibrations
 	_eventTimeMap.emplace(timeEvent.detid(), timeEvent);
 
@@ -105,7 +130,7 @@ void EcalTimingCalibProducer::plotRecHit(const EcalTimingEvent& timeEvent)
 		Event_EneMapEB_->Fill(id.ieta(), id.iphi(), timeEvent.energy()); // 2D energy map
 		Event_TimeMapEB_->Fill(id.ieta(), id.iphi(), timeEvent.time()); // 2D time map
 		RechitEnergyTimeEB->Fill(timeEvent.energy(), timeEvent.time());
-		OccupancyEB_->Fill(id.ieta(), id.iphi(), 1);
+		OccupancyEB_->Fill(id.iphi(), id.ieta(), 1);
 	} else {
 		// create EEDetId
 		EEDetId id(timeEvent.detid());
@@ -333,8 +358,8 @@ void EcalTimingCalibProducer::endJob()
 	strftime(current_time, sizeof(current_time), "%Y-%m-%d.%X", &tstruct);
 
 	char filename[100];
-	sprintf(filename, "%s.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str()); //text file holding constants
-	dumpCalibration(filename);
+	//sprintf(filename, "%s.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str()); //text file holding constants
+	//dumpCalibration(filename);
 	sprintf(filename, "%s-corr.dat", _outputDumpFileName.substr(0, _outputDumpFileName.find(".root")).c_str()); //text file holding constants
 	dumpCorrections(filename);
 }
@@ -548,7 +573,7 @@ void EcalTimingCalibProducer::initHists(TFileDirectory fdir)
 	HWTimeMapEB_  = fdir.make<TProfile2D>("HWTimeMapEB",  "Mean HW Time[ns] EB profile map; i#eta; i#phi;Time[ns]", 171, -85, 86, 360, 1., 361.);
 
 
-	OccupancyEB_  = fdir.make<TH2D>("OccupancyEB", "Occupancy EB; i#eta; i#phi; #Hits", 171, -85, 86, 360, 1., 361.);
+	OccupancyEB_  = fdir.make<TH2D>("OccupancyEB", "Occupancy EB; i#phi; i#eta; #Hits", 360, 1., 361., 171, -85, 86);
 	OccupancyEEM_ = fdir.make<TH2D>("OccupancyEEM", "OccupancyEEM; iy; ix; #Hits", 100, 1, 101, 100, 1, 101);
 	OccupancyEEP_ = fdir.make<TH2D>("OccupancyEEP", "OccupancyEEP; iy; ix; #Hits", 100, 1, 101, 100, 1, 101);
 }

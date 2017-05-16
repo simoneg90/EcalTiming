@@ -4,20 +4,20 @@
 #RUNPERIOD=Run2015B-v1
 #2015C
 #RUNLIST="254231 254232 254790 254879" #254852 
-RUNPERIOD=2016A-v1
+RUNPERIOD=2016B-v1
 
 #RUNLIST="254292 254293 254294 254319 254332 254341 254342 254349 254458 254459 254608"
 #RUNLIST="254307 255981 256001 256002 256003 256167 256169 256171 256215 256237" #256245 256349 256350 256355 256406"
 
 #2016A runlist
 RUNLIST="270639 270862 270886 270887 271045 271047 271048 271049 271082 271084 271087 271142 271143 271144 271161 271167 271168 271169 271170 271188 271191 271192 271193 271195 271336 271337 271338 271342"
-RUNLIST="271195"
+RUNLIST="272011"
 
 STREAM=AlCaPhiSym
 NEVENTS=-1
 QUEUE=2nd
 EOSPREFIX=root://eoscms//eos/cms/
-EOSDIR=/store/group/dpg_ecal/alca_ecalcalib/EcalTiming/Run2016A-v1/
+EOSDIR=/store/group/dpg_ecal/alca_ecalcalib/EcalTiming/Run2016B-v1/
 #DIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/RunII/
 CONFIG=$PWD/test/ecalTime_fromAlcaStream_cfg.py
 EVENTSPERJOB=500000
@@ -106,23 +106,30 @@ do
 	OUTDIR=$EOSDIR/${STREAM}-${RUN}/
 	$eos mkdir ${EOSDIR}
 	$eos mkdir ${OUTDIR}
-	AFSDIR=/afs/cern.ch/work/p/phansen/public/EcalTiming/analysis/Run2016-v1/${STREAM}-${RUN}/
+	AFSDIR=/afs/cern.ch/work/s/sgelli/public/EcalTiming/analysis/Run2016B-v1/${STREAM}-${RUN}/
 	mkdir -p ${AFSDIR}
 
 	if [[ $STEP == *"RECO"* ]]
 	then
                 echo "doing reco"
 		RECO="_RECO"
-		nfiles=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN} | count(file.name)" | sed '2 d'`
-		nfiles=${nfiles:19}
+#nfiles=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN} | count(file.name)" | sed '2 d'`
+                nfiles=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN}" --limit=0 | wc -l `
+                echo $nfiles "," ${STREAM}"/"${RUNPERIOD}
+                #nfiles=${nfiles:19}
+                echo $nfiles "," ${STREAM}"/"${RUNPERIOD}
 
 		if ! [[ $nfiles =~ ^[0-9]+$ ]]; then
 			echo "No Files found"
-			continue
+                        continue
 		fi
 
 		echo Will run over $nfiles files
-		filelist=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
+#filelist=`das_client.py --query="file dataset=/${STREAM}/${RUNPERIOD}/RAW run=${RUN}" --limit=${nfiles} | sed '2 d'`
+#das_client.py --query "file dataset=/AlCaPhiSym/Run2016B-v1/RAW run=272011" --limit=0
+                filelist="$(das_client.py --query "file dataset=/AlCaPhiSym/Run2016B-v1/RAW run=272011" --limit=10)"
+                filelist=${filelist:78}
+                echo "my list" ${filelist}
 		# for file in ${filelist}
 		# do
 		# das_client.py --query="file=${file} | sum(file.nevents)"
